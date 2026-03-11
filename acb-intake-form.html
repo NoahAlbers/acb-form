@@ -25,20 +25,15 @@
 
     /*
      * ============================================================
-     * CONFIGURATION - Update the email below to receive submissions
+     * CONFIGURATION
      * ============================================================
-     * Replace the email address with the email(s) you want form
-     * submissions sent to. First time, you'll get a confirmation
-     * email from FormSubmit - click the link to activate.
-     * 
-     * To send to multiple emails, separate with a comma:
-     *   const FORM_EMAIL = "sales@yourcompany.com,manager@yourcompany.com";
-     *
-     * Uses FormSubmit.co - 100% free, no account needed.
-     * Set to "" to disable (data logs to console instead).
+     * FORMSUBMIT_ID: Your FormSubmit hash (replaces your email for security).
+     * CC_EMAILS: Additional emails to receive submissions (comma-separated).
+     * Set FORMSUBMIT_ID to "" to disable (data logs to console instead).
      * ============================================================
      */
-    const FORM_EMAIL = "nalbers@advancedcb.com";
+    const FORMSUBMIT_ID = "dfeca48013a9d6519627f295dd99503c";
+    const CC_EMAILS = "";
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -352,37 +347,104 @@ function LeadIntakeForm() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({ fullName:"", companyName:"", noCompany:false, companyWebsite:"", noWebsite:false, certifyNoDebt:false, certifyOwesDebt:false, email:"", phone:"", priorAgency:"", debtTypes:[], customDebtType:"", states:[], ownershipType:"", ownPercent:50, totalUnits:"", listingSites:[], customListing:"", pmSoftware:[], customPM:"", comments:"", noQuestions:false });
   const [textsDone, setTextsDone] = useState({});
+  const trackingData = useRef({ location: "Loading...", device: "", referrer: "" });
+
+  // Collect tracking data on mount
+  useEffect(() => {
+    // Device info
+    const ua = navigator.userAgent;
+    let device = "Unknown";
+    if (/Mobile|Android|iPhone|iPad/i.test(ua)) {
+      device = /iPad/i.test(ua) ? "Tablet" : "Mobile";
+    } else {
+      device = "Desktop";
+    }
+    let browser = "Unknown";
+    if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
+    else if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+    else if (ua.includes("Edg")) browser = "Edge";
+    let os = "Unknown";
+    if (ua.includes("Windows")) os = "Windows";
+    else if (ua.includes("Mac OS")) os = "macOS";
+    else if (ua.includes("Linux")) os = "Linux";
+    else if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+    trackingData.current.device = `${device} / ${browser} / ${os}`;
+
+    // Referrer
+    const ref = document.referrer;
+    if (ref) {
+      try { trackingData.current.referrer = new URL(ref).hostname + new URL(ref).pathname; } catch(e) { trackingData.current.referrer = ref; }
+    } else {
+      trackingData.current.referrer = "(Direct visit)";
+    }
+
+    // UTM params from parent iframe or current URL
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const utms = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", ");
+      if (utms) trackingData.current.referrer += ` | UTMs: ${utms}`;
+    } catch(e) {}
+
+    // IP / Location
+    fetch("https://ipapi.co/json/")
+      .then(r => r.json())
+      .then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`; })
+      .catch(() => {
+        fetch("https://ipinfo.io/json?token=")
+          .then(r => r.json())
+          .then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`; })
+          .catch(() => { trackingData.current.location = "(Could not determine)"; });
+      });
+  }, []);
+
   const markTextDone = useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));}, []);
 
   const submitForm = useCallback((formData) => {
+    const t = trackingData.current;
+    // Fields ordered for the email table
     const payload = {
-      name: formData.fullName,
-      company: formData.noCompany ? "(Independent owner)" : formData.companyName,
-      website: formData.noWebsite ? "(No website)" : formData.companyWebsite,
-      email: formData.email,
-      phone: formData.phone,
-      priorAgencyExperience: formData.priorAgency,
-      debtTypes: formData.debtTypes.join(", ") + (formData.customDebtType ? ` (${formData.customDebtType})` : ""),
-      states: formData.states.join(", "),
-      ownership: formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : ""),
-      totalUnits: formData.totalUnits,
-      listingSites: formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : ""),
-      pmSoftware: (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : ""),
-      comments: formData.noQuestions ? "(No questions)" : (formData.comments || ""),
+      // --- Contact & Company ---
+      "Name": formData.fullName,
+      "Company": formData.noCompany ? "(Independent owner)" : formData.companyName,
+      "Total Units": formData.totalUnits,
+      "Ownership": formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : ""),
+      "---1": "---",
+      // --- Contact Info ---
+      "Email": formData.email,
+      "Phone Number": formData.phone,
+      "Website": formData.noWebsite ? "(No website)" : formData.companyWebsite,
+      "---2": "---",
+      // --- Business Details ---
+      "Debt Types": formData.debtTypes.join(", ") + (formData.customDebtType ? ` (${formData.customDebtType})` : ""),
+      "Listing Sites": formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : ""),
+      "Property Management Software": (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : ""),
+      "Prior Debt Collection Agency": formData.priorAgency || "(Not answered)",
+      "States": formData.states.join(", "),
+      "---3": "---",
+      // --- Comments ---
+      "Comments": formData.noQuestions ? "(No questions)" : (formData.comments || "(None)"),
+      "---4": "---",
+      // --- Tracking ---
+      "Location / IP": t.location,
+      "Device Info": t.device,
+      "Referrer Info": t.referrer,
+      // --- FormSubmit config ---
       _subject: "New Lead: " + formData.fullName + (formData.companyName ? " - " + formData.companyName : ""),
       _captcha: "false",
       _template: "table",
+      _replyto: formData.email,
     };
+    if (CC_EMAILS) payload._cc = CC_EMAILS;
+
     console.log("Form submitted:", payload);
-    if (FORM_EMAIL) {
-      const emails = FORM_EMAIL.split(",").map(e => e.trim());
-      const primaryEmail = emails[0];
-      if (emails.length > 1) payload._cc = emails.slice(1).join(",");
-      fetch(`https://formsubmit.co/ajax/${primaryEmail}`, {
+    if (FORMSUBMIT_ID) {
+      fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify(payload)
-      }).catch(err => console.error("Submit error:", err));
+      }).then(r => r.json()).then(d => console.log("FormSubmit response:", d)).catch(err => console.error("Submit error:", err));
     }
   }, []);
 
