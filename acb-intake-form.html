@@ -347,7 +347,7 @@ function LeadIntakeForm() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({ fullName:"", companyName:"", noCompany:false, companyWebsite:"", noWebsite:false, certifyNoDebt:false, certifyOwesDebt:false, email:"", phone:"", priorAgency:"", debtTypes:[], customDebtType:"", states:[], ownershipType:"", ownPercent:50, totalUnits:"", listingSites:[], customListing:"", pmSoftware:[], customPM:"", comments:"", noQuestions:false });
   const [textsDone, setTextsDone] = useState({});
-  const trackingData = useRef({ location: "Loading...", device: "", referrer: "" });
+  const trackingData = useRef({ location: "Loading...", device: "", referrer: "", timezone: "" });
 
   // Collect tracking data on mount
   useEffect(() => {
@@ -372,29 +372,53 @@ function LeadIntakeForm() {
     else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
     trackingData.current.device = `${device} / ${browser} / ${os}`;
 
-    // Referrer
-    const ref = document.referrer;
-    if (ref) {
-      try { trackingData.current.referrer = new URL(ref).hostname + new URL(ref).pathname; } catch(e) { trackingData.current.referrer = ref; }
-    } else {
-      trackingData.current.referrer = "(Direct visit)";
-    }
+    // Original referrer: try to get what brought them to advancedcb.com, not just the iframe parent
+    let originalRef = "(Direct visit)";
+    try {
+      // Check if parent page stored the original referrer
+      if (window.parent && window.parent !== window) {
+        try { originalRef = window.parent.document.referrer || "(Direct visit)"; } catch(e) {}
+      } else {
+        originalRef = document.referrer || "(Direct visit)";
+      }
+      // Clean it up - if it's your own site, that's not useful
+      if (originalRef && originalRef !== "(Direct visit)") {
+        const refHost = new URL(originalRef).hostname;
+        if (refHost.includes("advancedcb.com") || refHost.includes("advancedcollectionbureau")) {
+          originalRef = "(Internal navigation)";
+        } else {
+          originalRef = refHost + new URL(originalRef).pathname;
+        }
+      }
+    } catch(e) { originalRef = "(Could not determine)"; }
+    trackingData.current.referrer = originalRef;
 
     // UTM params from parent iframe or current URL
     try {
-      const params = new URLSearchParams(window.location.search);
+      let params = new URLSearchParams(window.location.search);
+      // Also try parent URL for UTMs
+      try { if (window.parent && window.parent !== window) { const pp = new URLSearchParams(window.parent.location.search); pp.forEach((v,k) => { if (!params.has(k)) params.set(k,v); }); } } catch(e) {}
       const utms = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", ");
       if (utms) trackingData.current.referrer += ` | UTMs: ${utms}`;
     } catch(e) {}
 
-    // IP / Location
+    // Timezone from browser
+    try { trackingData.current.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { trackingData.current.timezone = "(Unknown)"; }
+
+    // IP / Location + timezone from IP
     fetch("https://ipapi.co/json/")
       .then(r => r.json())
-      .then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`; })
+      .then(d => {
+        trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;
+        if (d.timezone) trackingData.current.timezone = d.timezone;
+      })
       .catch(() => {
         fetch("https://ipinfo.io/json?token=")
           .then(r => r.json())
-          .then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`; })
+          .then(d => {
+            trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;
+            if (d.timezone) trackingData.current.timezone = d.timezone;
+          })
           .catch(() => { trackingData.current.location = "(Could not determine)"; });
       });
   }, []);
@@ -403,34 +427,38 @@ function LeadIntakeForm() {
 
   const submitForm = useCallback((formData) => {
     const t = trackingData.current;
-    // Fields ordered for the email table
+
+    // EST submission time
+    const now = new Date();
+    const estTime = now.toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) + " EST";
+
+    // Make website a clickable link for the email
+    let websiteVal = "(No website)";
+    if (!formData.noWebsite && formData.companyWebsite) {
+      let url = formData.companyWebsite;
+      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+      websiteVal = `<a href="${url}">${formData.companyWebsite}</a>`;
+    }
+
     const payload = {
-      // --- Contact & Company ---
       "Name": formData.fullName,
       "Company": formData.noCompany ? "(Independent owner)" : formData.companyName,
       "Total Units": formData.totalUnits,
       "Ownership": formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : ""),
-      "---1": "---",
-      // --- Contact Info ---
       "Email": formData.email,
       "Phone Number": formData.phone,
-      "Website": formData.noWebsite ? "(No website)" : formData.companyWebsite,
-      "---2": "---",
-      // --- Business Details ---
+      "Website": websiteVal,
       "Debt Types": formData.debtTypes.join(", ") + (formData.customDebtType ? ` (${formData.customDebtType})` : ""),
       "Listing Sites": formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : ""),
-      "Property Management Software": (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : ""),
-      "Prior Debt Collection Agency": formData.priorAgency || "(Not answered)",
+      "PM Software": (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : ""),
+      "Prior Collection Agency": formData.priorAgency || "(Not answered)",
       "States": formData.states.join(", "),
-      "---3": "---",
-      // --- Comments ---
       "Comments": formData.noQuestions ? "(No questions)" : (formData.comments || "(None)"),
-      "---4": "---",
-      // --- Tracking ---
       "Location / IP": t.location,
-      "Device Info": t.device,
-      "Referrer Info": t.referrer,
-      // --- FormSubmit config ---
+      "Device": t.device,
+      "Referrer": t.referrer,
+      "Likely Timezone": t.timezone,
+      "Submitted (EST)": estTime,
       _subject: "New Lead: " + formData.fullName + (formData.companyName ? " - " + formData.companyName : ""),
       _captcha: "false",
       _template: "table",
