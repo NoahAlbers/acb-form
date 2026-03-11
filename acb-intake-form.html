@@ -109,8 +109,9 @@ function formatPhone(val) {
 // Non-linear rent slider: $500-$5000 by 100s, $5000-$10000 by 500s, $10000-$100000 by 5000s
 const RENT_TICKS = (() => {
   const t = [];
-  for (let v=500; v<5000; v+=100) t.push(v);
-  for (let v=5000; v<10000; v+=500) t.push(v);
+  for (let v=500; v<2000; v+=50) t.push(v);
+  for (let v=2000; v<5000; v+=250) t.push(v);
+  for (let v=5000; v<10000; v+=1000) t.push(v);
   for (let v=10000; v<=100000; v+=5000) t.push(v);
   return t;
 })();
@@ -362,7 +363,9 @@ function StepContent({ step, data, setData, goTo, next, back, markTextDone, text
     case "debtsNow": return <><RevealText text="Do you have debts you're looking to get collected right now?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes, we have accounts ready","Not yet, but soon"].map(opt=>{const a=data.debtsNow===opt; return <button key={opt} onClick={()=>setData(d=>({...d,debtsNow:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.debtsNow==="Yes, we have accounts ready" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement.</p></FadeIn>}{data.debtsNow==="Not yet, but soon" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list.</p></FadeIn>}{data.debtsNow && <ContinueButton onClick={next} delay={200} />}</>}</>;
 
     // ═══ NON-RESIDENTIAL BRANCH ═══
-    case "nonResBranch": return <><RevealText text="We specialize in residential rental debt, but we know the collections industry inside and out." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'd love to get in touch and recommend a great agency for your specific debt type. We know the ins and outs of what makes a good agency versus a not-so-good one." delay={150} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <RevealText text="If you think you have enough volume for us to build a dedicated team just for you, we'd be happy to discuss that too." delay={150} onComplete={()=>markTextDone("c")} className="sub-text" />}{textsDone.c && <FadeIn delay={200}><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:24}}><button onClick={()=>goTo("nonResStates")} style={{padding:"15px 32px",borderRadius:50,border:"none",background:T.blue,color:"#fff",fontSize:16,fontFamily:FONT,fontWeight:600,cursor:"pointer",boxShadow:`0 4px 18px ${T.blue}44`}}>Get me a recommendation</button><button onClick={()=>goTo("sellAcbPitch")} style={{padding:"15px 32px",borderRadius:50,border:`1.5px solid ${T.border}`,background:"#fff",color:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>I want a dedicated team, let's continue</button></div></FadeIn>}</>;
+    case "nonResBranch": return <><RevealText text="We specialize in residential rental debt, but we know the collections industry inside and out." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'd love to get in touch and recommend a great agency for your specific debt type. We know the ins and outs of what makes a good agency versus a not-so-good one." delay={150} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <RevealText text="If you think you have enough volume for us to build a dedicated team just for you, we'd be happy to discuss that too." delay={150} onComplete={()=>markTextDone("c")} className="sub-text" />}{textsDone.c && <FadeIn delay={200}><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:24}}><button onClick={()=>goTo("nonResStates")} style={{padding:"15px 32px",borderRadius:50,border:"none",background:T.blue,color:"#fff",fontSize:16,fontFamily:FONT,fontWeight:600,cursor:"pointer",boxShadow:`0 4px 18px ${T.blue}44`}}>Get me a recommendation</button><button onClick={()=>goTo("sellDedicatedTeam")} style={{padding:"15px 32px",borderRadius:50,border:`1.5px solid ${T.border}`,background:"#fff",color:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>I want a dedicated team, let's continue</button></div></FadeIn>}</>;
+
+    case "sellDedicatedTeam": return <SellSection lines={[{text:"At Advanced Collection Bureau, we train our staff on specific sectors to ensure the highest possible recovery rates."},{text:"For clients with enough volume, we build a team dedicated entirely to your accounts. They learn your business, your tenants, and your expectations inside and out."},{text:"We'd love to be that team for you.", accent:true}]} affirmLabel="Let's make it happen" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
     case "nonResStates": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={()=>goTo("comments")} delay={350} disabled={data.states.length===0} /></>}</>;
 
@@ -396,7 +399,7 @@ function StepContent({ step, data, setData, goTo, next, back, markTextDone, text
       return <><RevealText text="What's the average monthly rental rate per unit?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{marginTop:20,padding:"24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}>
         <div style={{textAlign:"center",marginBottom:16}}><span style={{fontSize:36,fontWeight:700,color:T.blue,fontFamily:FONT}}>{formatRent(rentVal)}</span><span style={{fontSize:14,color:T.textLight,fontFamily:FONT,marginLeft:6}}>/ month</span></div>
         <input type="range" min={0} max={RENT_TICKS.length-1} value={sliderPos} onChange={e=>{const pos=parseInt(e.target.value);setData(d=>({...d,rentSliderPos:pos,avgRent:rentSliderToValue(pos)}));}} style={{width:"100%",accentColor:T.blue,height:8}} />
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$500</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$5,000</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$100,000+</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$500</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$2,000</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$100,000+</span></div>
       </div></FadeIn><ContinueButton onClick={next} delay={300} /></>}</>;
     }
 
@@ -423,6 +426,7 @@ function StepContent({ step, data, setData, goTo, next, back, markTextDone, text
 // Step flow definitions
 const RESIDENTIAL_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","sellAcbPitch","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","rentalTypes","propertyTypes","avgRent","listings","pmSoftware","sellReporting","sellStrategy","comments","done"];
 const NON_RES_SHORT_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","nonResStates","comments","done"];
+const DEDICATED_TEAM_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","sellDedicatedTeam","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","sellStrategy","comments","done"];
 
 function LeadIntakeForm() {
   const [stepIndex, setStepIndex] = useState(0);
@@ -493,7 +497,7 @@ function LeadIntakeForm() {
     payload["Referrer"] = t.referrer;
     payload["Likely Timezone"] = t.timezone;
     payload["Submitted (EST)"] = estTime;
-    payload._subject = `${formData.fullName} | ${formData.noCompany ? "Independent" : formData.companyName} | Units: ${formData.totalUnits || "N/A"}`;
+    payload._subject = `${formData.fullName} | ${formData.noCompany ? "Independent" : formData.companyName} | Units: ${formData.totalUnits || "N/A"} | Avg Rent: ${formatRent(formData.avgRent || 0)} | ${formData.phone} | ${formData.email}`;
     payload._captcha = "false";
     payload._template = "table";
     payload._replyto = formData.email;
@@ -528,22 +532,28 @@ function LeadIntakeForm() {
 
   const goTo = useCallback((stepName) => {
     setTextsDone({});
-    // If going to sellAcbPitch, switch to residential flow
-    if (stepName === "sellAcbPitch") {
+    if (stepName === "sellDedicatedTeam") {
+      setFlow(DEDICATED_TEAM_FLOW);
+      setStepIndex(DEDICATED_TEAM_FLOW.indexOf("sellDedicatedTeam"));
+    } else if (stepName === "sellAcbPitch") {
       setFlow(RESIDENTIAL_FLOW);
       setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));
     } else if (stepName === "nonResStates") {
       setFlow(NON_RES_SHORT_FLOW);
       setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));
-    } else if (stepName === "comments") {
-      // Find comments in current flow
-      const idx = flow.indexOf("comments");
+    } else {
+      const idx = flow.indexOf(stepName);
       if (idx >= 0) setStepIndex(idx);
     }
     window.scrollTo({top:0,behavior:"smooth"});
   }, [flow]);
 
-  const back = useCallback(()=>{setTextsDone({});setStepIndex(i=>Math.max(0,i-1));window.scrollTo({top:0,behavior:"smooth"});}, []);
+  const back = useCallback(()=>{
+    // When going back, pre-fill all text animations so fields show immediately
+    setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});
+    setStepIndex(i=>Math.max(0,i-1));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }, []);
 
   const totalSteps = flow.length;
   const progress = Math.round((stepIndex / (totalSteps - 1)) * 100);
