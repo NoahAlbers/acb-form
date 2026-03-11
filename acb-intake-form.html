@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Get Started</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -34,6 +34,7 @@
      */
     const FORMSUBMIT_ID = "dfeca48013a9d6519627f295dd99503c";
     const CC_EMAILS = "";
+
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -92,6 +93,8 @@ const SVG_PATHS = {
 const DEBT_TYPES = ["Residential Rental Debt","Commercial Rental Debt","Medical Debt","Utility Debt","Student Loan Debt","Credit Card Debt","Auto Loan Debt","Other"];
 const LISTING_SITES = ["Zillow","Apartments.com","Realtor.com","Rent.com","Trulia","HotPads","Own Website","Facebook Marketplace","Craigslist","Other"];
 const PM_SOFTWARE = ["Buildium","AppFolio","Rent Manager","Yardi","DoorLoop","TurboTenant","TenantCloud","Rentec Direct","Zillow Rental Manager","RentRedi","PropertyWare","Entrada","Other"];
+const RENTAL_TYPES = ["Luxury","Affordable / Section 8","Conventional","Student Housing","Senior Living","Other"];
+const PROPERTY_TYPES = ["Single Family Homes","Multi-Family","Communities / HOA","Townhomes","Condos","Mixed-Use","Other"];
 
 const T = {blue:"#3D5AF1",blueDark:"#2D45C6",blueLight:"#EEF1FE",blueMid:"#D5DBFC",bg:"#F4F5F9",card:"#FFFFFF",text:"#1A1A2E",textMid:"#4A4A68",textLight:"#8889A0",border:"#E2E4EC",warn:"#E8A83E",warnBg:"#FEF9EE"};
 const FONT = "'Outfit', sans-serif";
@@ -102,6 +105,18 @@ function formatPhone(val) {
   if (digits.length <= 6) return digits.slice(0,3) + "-" + digits.slice(3);
   return digits.slice(0,3) + "-" + digits.slice(3,6) + "-" + digits.slice(6);
 }
+
+// Non-linear rent slider: $500-$5000 by 100s, $5000-$10000 by 500s, $10000-$100000 by 5000s
+const RENT_TICKS = (() => {
+  const t = [];
+  for (let v=500; v<5000; v+=100) t.push(v);
+  for (let v=5000; v<10000; v+=500) t.push(v);
+  for (let v=10000; v<=100000; v+=5000) t.push(v);
+  return t;
+})();
+function rentSliderToValue(pos) { return RENT_TICKS[Math.min(pos, RENT_TICKS.length-1)]; }
+function rentValueToSlider(val) { let closest=0; RENT_TICKS.forEach((t,i)=>{if(Math.abs(t-val)<Math.abs(RENT_TICKS[closest]-val))closest=i;}); return closest; }
+function formatRent(val) { return val >= 100000 ? "$100,000+" : "$" + val.toLocaleString(); }
 
 function RevealText({ text, delay = 0, onComplete, className = "" }) {
   const [v, setV] = useState(false);
@@ -152,7 +167,6 @@ function ProgressBar({ progress }) {
   return <div style={{ position:"fixed", top:0, left:0, right:0, height:4, zIndex:100, background:T.border }}><div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg, ${T.blue}, ${T.blueDark})`, transition:"width 0.6s cubic-bezier(0.22, 1, 0.36, 1)", borderRadius:"0 2px 2px 0" }} /></div>;
 }
 
-/* State search + map */
 function StateSearchInput({ selected, onToggle }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
@@ -163,7 +177,7 @@ function StateSearchInput({ selected, onToggle }) {
       <input type="text" value={query} onChange={e=>setQuery(e.target.value)} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),200)}
         placeholder="Type a state name to add it..."
         style={{ width:"100%", padding:"12px 18px", background:"#fff", border:`1.5px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:14, fontFamily:FONT, outline:"none", boxSizing:"border-box" }}
-        onKeyDown={e => { if(e.key==="Enter" && matches.length>0){ onToggle(matches[0]); setQuery(""); } }}
+        onKeyDown={e => { if(e.key==="Enter" && matches.length>0){ e.preventDefault(); e.stopPropagation(); onToggle(matches[0]); setQuery(""); } }}
       />
       {focused && matches.length > 0 && (
         <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:`1px solid ${T.border}`, borderRadius:10, marginTop:4, boxShadow:"0 4px 16px rgba(0,0,0,0.08)", zIndex:10, overflow:"hidden" }}>
@@ -190,12 +204,12 @@ function USStateMap({ selected, onToggle }) {
   const dragStart = useRef(null);
   const dragOrigin = useRef(null);
   const mapRef = useRef(null);
+  const lastTouchDist = useRef(null);
 
-  // Mouse-position-based zoom
+  // Desktop scroll zoom (mouse-position based)
   const handleWheel = useCallback((e) => {
     e.preventDefault(); e.stopPropagation();
-    const el = mapRef.current;
-    if (!el) return;
+    const el = mapRef.current; if (!el) return;
     const rect = el.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -203,47 +217,70 @@ function USStateMap({ selected, onToggle }) {
     setZoom(prevZ => {
       const newZ = Math.min(4, Math.max(0.8, prevZ + frac));
       const scale = newZ / prevZ;
-      setPan(prevPan => ({
-        x: mx - scale * (mx - prevPan.x),
-        y: my - scale * (my - prevPan.y),
-      }));
+      setPan(prevPan => ({ x: mx - scale * (mx - prevPan.x), y: my - scale * (my - prevPan.y) }));
       return newZ;
     });
   }, []);
 
   useEffect(() => {
-    const el = mapRef.current;
-    if (!el) return;
+    const el = mapRef.current; if (!el) return;
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  const handleMouseDown = (e) => {
-    setDragging(true);
-    setDidDrag(false);
-    dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-    dragOrigin.current = { x: e.clientX, y: e.clientY };
-  };
-  const handleMouseMove = (e) => {
-    if (!dragging || !dragStart.current) return;
-    const dx = e.clientX - dragOrigin.current.x;
-    const dy = e.clientY - dragOrigin.current.y;
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) setDidDrag(true);
-    setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
-  };
+  // Mouse drag
+  const handleMouseDown = (e) => { setDragging(true); setDidDrag(false); dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }; dragOrigin.current = { x: e.clientX, y: e.clientY }; };
+  const handleMouseMove = (e) => { if (!dragging || !dragStart.current) return; const dx = e.clientX - dragOrigin.current.x; const dy = e.clientY - dragOrigin.current.y; if (Math.abs(dx) > 4 || Math.abs(dy) > 4) setDidDrag(true); setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y }); };
   const handleMouseUp = () => { setDragging(false); };
-  const handleToggle = (name, bulkSet) => { if(bulkSet!==undefined) onToggle(null, bulkSet); else onToggle(name); };
 
-  const handleStateClick = (e, name) => {
-    e.stopPropagation();
-    if (!didDrag) handleToggle(name);
+  // Touch: 1 finger = pan, 2 fingers = zoom
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setDragging(true); setDidDrag(false);
+      dragStart.current = { x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y };
+      dragOrigin.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      lastTouchDist.current = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
   };
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 1 && dragging && dragStart.current) {
+      const dx = e.touches[0].clientX - dragOrigin.current.x;
+      const dy = e.touches[0].clientY - dragOrigin.current.y;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) setDidDrag(true);
+      setPan({ x: e.touches[0].clientX - dragStart.current.x, y: e.touches[0].clientY - dragStart.current.y });
+      e.preventDefault();
+    } else if (e.touches.length === 2 && lastTouchDist.current) {
+      e.preventDefault();
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      const scale = dist / lastTouchDist.current;
+      setZoom(z => Math.min(4, Math.max(0.8, z * scale)));
+      lastTouchDist.current = dist;
+    }
+  };
+  const handleTouchEnd = (e) => { setDragging(false); if (e.touches.length < 2) lastTouchDist.current = null; };
+
+  // Touch event registration with passive:false
+  useEffect(() => {
+    const el = mapRef.current; if (!el) return;
+    const opts = { passive: false };
+    el.addEventListener("touchstart", handleTouchStart, opts);
+    el.addEventListener("touchmove", handleTouchMove, opts);
+    el.addEventListener("touchend", handleTouchEnd);
+    return () => { el.removeEventListener("touchstart", handleTouchStart); el.removeEventListener("touchmove", handleTouchMove); el.removeEventListener("touchend", handleTouchEnd); };
+  });
+
+  const handleToggle = (name, bulkSet) => { if(bulkSet!==undefined) onToggle(null, bulkSet); else onToggle(name); };
+  const handleStateClick = (e, name) => { e.stopPropagation(); if (!didDrag) handleToggle(name); };
+  const zoomIn = () => setZoom(z => Math.min(4, z + 0.4));
+  const zoomOut = () => setZoom(z => Math.max(0.8, z - 0.4));
 
   return (
     <div style={{ position:"relative", marginTop:16 }}>
       <StateSearchInput selected={selected} onToggle={(name)=>handleToggle(name)} />
       <div ref={mapRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-        style={{ overflow:"hidden", borderRadius:14, border:`1px solid ${T.border}`, background:"#FAFBFD", cursor:dragging?"grabbing":"default", position:"relative", marginTop:10 }}>
+        style={{ overflow:"hidden", borderRadius:14, border:`1px solid ${T.border}`, background:"#FAFBFD", cursor:dragging?"grabbing":"default", position:"relative", marginTop:10, touchAction:"none" }}>
         <svg viewBox="0 0 1000 589" style={{ width:"100%", height:"auto", maxHeight:420, display:"block", transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin:"0 0", transition:dragging?"none":"transform 0.15s ease" }}>
           {Object.entries(SVG_PATHS).map(([code, d]) => {
             const name = STATE_NAMES[code] || code;
@@ -256,8 +293,12 @@ function USStateMap({ selected, onToggle }) {
           })}
         </svg>
         {hovered && <div style={{ position:"absolute", top:10, left:10, padding:"6px 14px", background:"#fff", borderRadius:8, boxShadow:"0 2px 8px rgba(0,0,0,0.1)", fontSize:13, fontFamily:FONT, fontWeight:600, color:T.text, pointerEvents:"none" }}>{STATE_NAMES[hovered]||hovered}</div>}
+        <div style={{ position:"absolute", bottom:10, right:10, display:"flex", flexDirection:"column", gap:4 }}>
+          <button onClick={zoomIn} style={{ width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, background:"#fff", color:T.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>+</button>
+          <button onClick={zoomOut} style={{ width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, background:"#fff", color:T.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>-</button>
+        </div>
       </div>
-      <p style={{ color:T.textLight, fontSize:11, fontFamily:FONT, marginTop:6 }}>Scroll to zoom, drag to pan. Hover for state names.</p>
+      <p style={{ color:T.textLight, fontSize:11, fontFamily:FONT, marginTop:6 }}>Click states or type to search. Scroll/pinch to zoom, drag to pan.</p>
       {selected.length > 0 && <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10 }}>
         {selected.map(name => <span key={name} onClick={()=>handleToggle(name)} style={{ padding:"5px 14px", borderRadius:50, background:T.blueLight, border:`1px solid ${T.blue}44`, color:T.blue, fontSize:12, fontFamily:FONT, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>{name} ×</span>)}
       </div>}
@@ -276,225 +317,239 @@ function SellSection({ lines, affirmLabel="Sounds great, let's continue", onCont
   return <>{lines.map((line,i)=>{ const id=ids[i]; if(i>0&&!textsDone[ids[i-1]]) return null; return <RevealText key={id} text={line.text} delay={i===0?100:150} onComplete={()=>markTextDone(id)} className={line.accent?"accent-text":i===0?"hero-text":"sub-text"} />; })}{textsDone[ids[ids.length-1]] && <ContinueButton onClick={onContinue} label={affirmLabel} delay={250} />}</>;
 }
 
-/* Confetti burst */
 function Confetti() {
   const colors = [T.blue,"#FFD700","#FF6B6B","#4ECDC4","#A78BFA","#F97316"];
   const pieces = Array.from({length:60},(_,i)=>({
     id:i, color:colors[i%colors.length],
     left:Math.random()*100, delay:Math.random()*0.8,
     duration:1.5+Math.random()*2, size:6+Math.random()*8,
-    drift:-30+Math.random()*60, rotation:Math.random()*360
+    rotation:Math.random()*360
   }));
   return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:200,overflow:"hidden"}}>
-    {pieces.map(p=><div key={p.id} style={{
-      position:"absolute", top:-20, left:`${p.left}%`,
-      width:p.size, height:p.size*0.6, background:p.color,
-      borderRadius:2, opacity:0.9,
-      animation:`confetti-fall ${p.duration}s ${p.delay}s ease-in forwards`,
-      transform:`rotate(${p.rotation}deg)`
-    }}/>)}
+    {pieces.map(p=><div key={p.id} style={{ position:"absolute", top:-20, left:`${p.left}%`, width:p.size, height:p.size*0.6, background:p.color, borderRadius:2, opacity:0.9, animation:`confetti-fall ${p.duration}s ${p.delay}s ease-in forwards`, transform:`rotate(${p.rotation}deg)` }}/>)}
   </div>;
 }
 
-const TOTAL_STEPS = 19;
+/* ═══════════════════════════════════════════════════════════
+   STEP FLOW ENGINE
+   Uses a step registry so branching is clean.
+   The form tracks: isResidentialPath (boolean)
+   ═══════════════════════════════════════════════════════════ */
 
-function StepContent({ step, data, setData, next, back, markTextDone, textsDone }) {
+function StepContent({ step, data, setData, goTo, next, back, markTextDone, textsDone }) {
   const firstName = data.fullName.split(" ")[0] || "";
+  const isRes = data.debtTypes.includes("Residential Rental Debt");
+  const bigPortfolio = parseInt(data.totalUnits || "0") >= 1000;
+
   switch(step) {
-    case 0: return <><RevealText text="We're excited to work with you to get your debt collected." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we'll need some information about you." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <ContinueButton onClick={next} label="Let's Get Started" delay={200} />}</>;
+    // ═══ SHARED STEPS ═══
+    case "intro": return <><RevealText text="We're excited to work with you to get your debt collected." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we'll need some information about you." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <ContinueButton onClick={next} label="Let's Get Started" delay={200} />}</>;
 
-    case 1: return <><RevealText text="What's your name?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.fullName} onChange={v=>setData(d=>({...d,fullName:v}))} placeholder="First and last name" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.fullName.trim()} /></>}</>;
+    case "name": return <><RevealText text="What's your name?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.fullName} onChange={v=>setData(d=>({...d,fullName:v}))} placeholder="First and last name" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.fullName.trim()} /></>}</>;
 
-    case 2: return <><RevealText text={`Nice to meet you, ${firstName}!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="What company do you work with?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noCompany && <TextInput value={data.companyName} onChange={v=>setData(d=>({...d,companyName:v}))} placeholder="Company name" delay={150} autoFocus />}<Checkbox checked={data.noCompany} onChange={val=>setData(d=>({...d,noCompany:val,companyName:""}))} label="I don't work with a company / I'm an independent owner" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noCompany&&!data.companyName.trim()} /></>}</>;
+    case "company": return <><RevealText text={`Nice to meet you, ${firstName}!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="What company do you work with?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noCompany && <TextInput value={data.companyName} onChange={v=>setData(d=>({...d,companyName:v}))} placeholder="Company name" delay={150} autoFocus />}<Checkbox checked={data.noCompany} onChange={val=>setData(d=>({...d,noCompany:val,companyName:""}))} label="I don't work with a company / I'm an independent owner" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noCompany&&!data.companyName.trim()} /></>}</>;
 
-    case 3: return <><RevealText text={data.noCompany?"Great! Does your rental business have a website?":`Great to hear ${data.companyName} will get more accounts receivable help!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&!data.noCompany && <RevealText text={`Does ${data.companyName} have a website?`} delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{(textsDone.b||(data.noCompany&&textsDone.a)) && <>{!data.noWebsite && <TextInput value={data.companyWebsite} onChange={v=>setData(d=>({...d,companyWebsite:v}))} placeholder="https://yourcompany.com" delay={150} autoFocus />}<Checkbox checked={data.noWebsite} onChange={val=>setData(d=>({...d,noWebsite:val,companyWebsite:""}))} label="We don't have a website" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noWebsite&&!data.companyWebsite.trim()} /></>}</>;
+    case "website": return <><RevealText text={data.noCompany?"Great! Does your rental business have a website?":`Great to hear ${data.companyName} will get more accounts receivable help!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&!data.noCompany && <RevealText text={`Does ${data.companyName} have a website?`} delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{(textsDone.b||(data.noCompany&&textsDone.a)) && <>{!data.noWebsite && <TextInput value={data.companyWebsite} onChange={v=>setData(d=>({...d,companyWebsite:v}))} placeholder="https://yourcompany.com" delay={150} autoFocus />}<Checkbox checked={data.noWebsite} onChange={val=>setData(d=>({...d,noWebsite:val,companyWebsite:""}))} label="We don't have a website" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noWebsite&&!data.companyWebsite.trim()} /></>}</>;
 
-    case 4: return <><RevealText text="We'll be collecting your debt in no time!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we need you to certify the following:" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><Checkbox checked={data.certifyNoDebt} onChange={val=>setData(d=>({...d,certifyNoDebt:val,certifyOwesDebt:val?false:d.certifyOwesDebt}))} label={`I, ${data.fullName||"the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`} delay={200} /><Checkbox checked={data.certifyOwesDebt} onChange={val=>setData(d=>({...d,certifyOwesDebt:val,certifyNoDebt:val?false:d.certifyNoDebt}))} label="I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau." delay={350} small />{data.certifyNoDebt && <ContinueButton onClick={next} delay={150} />}{data.certifyOwesDebt && <FadeIn delay={150}><div style={{marginTop:24,padding:"24px 28px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:16,fontFamily:FONT,margin:0,lineHeight:1.6}}>Please contact our main office directly at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> and we'll be happy to assist you.</p><button onClick={()=>setData(d=>({...d,certifyOwesDebt:false}))} style={{marginTop:16,padding:"10px 24px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,color:T.textMid,fontSize:14,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></div></FadeIn>}</>}</>;
+    case "certify": return <><RevealText text="We'll be collecting your debt in no time!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we need you to certify the following:" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><Checkbox checked={data.certifyNoDebt} onChange={val=>setData(d=>({...d,certifyNoDebt:val,certifyOwesDebt:val?false:d.certifyOwesDebt}))} label={`I, ${data.fullName||"the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`} delay={200} /><Checkbox checked={data.certifyOwesDebt} onChange={val=>setData(d=>({...d,certifyOwesDebt:val,certifyNoDebt:val?false:d.certifyNoDebt}))} label="I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau." delay={350} small />{data.certifyNoDebt && <ContinueButton onClick={next} delay={150} />}{data.certifyOwesDebt && <FadeIn delay={150}><div style={{marginTop:24,padding:"24px 28px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:16,fontFamily:FONT,margin:0,lineHeight:1.6}}>Please contact our main office directly at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> and we'll be happy to assist you.</p><button onClick={()=>setData(d=>({...d,certifyOwesDebt:false}))} style={{marginTop:16,padding:"10px 24px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,color:T.textMid,fontSize:14,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></div></FadeIn>}</>}</>;
 
-    case 5: return <><RevealText text="Perfect!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Now for some contact info so we can get in touch." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><TextInput value={data.email} onChange={v=>setData(d=>({...d,email:v}))} placeholder="Your email address" delay={150} type="email" autoFocus /><FadeIn delay={300}><input type="tel" value={data.phone} onChange={e=>setData(d=>({...d,phone:formatPhone(e.target.value)}))} placeholder="000-000-0000" style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}} onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}} onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}/></FadeIn><FadeIn delay={400}><div style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"14px 18px",background:T.blueLight,borderRadius:10,border:`1px solid ${T.blueMid}`}}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{marginTop:2,flexShrink:0}}><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 11.5a.75.75 0 110-1.5.75.75 0 010 1.5zM10.75 9.5a.75.75 0 01-1.5 0V6.75a.75.75 0 011.5 0V9.5z" fill={T.blue}/></svg><p style={{color:T.textMid,fontSize:13,fontFamily:FONT,lineHeight:1.5,margin:0}}>You won't be added to any automated mailing lists. A real member of our team will reach out to you personally. No spam, we promise.</p></div></FadeIn><ContinueButton onClick={next} delay={500} disabled={!data.email.trim()||data.phone.replace(/\D/g,"").length<10} /></>}</>;
+    case "contact": return <><RevealText text="Perfect!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Now for some contact info so we can get in touch." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><TextInput value={data.email} onChange={v=>setData(d=>({...d,email:v}))} placeholder="Your email address" delay={150} type="email" autoFocus /><FadeIn delay={300}><input type="tel" value={data.phone} onChange={e=>setData(d=>({...d,phone:formatPhone(e.target.value)}))} placeholder="000-000-0000" style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}} onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}} onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}/></FadeIn><FadeIn delay={400}><div style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"14px 18px",background:T.blueLight,borderRadius:10,border:`1px solid ${T.blueMid}`}}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{marginTop:2,flexShrink:0}}><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 11.5a.75.75 0 110-1.5.75.75 0 010 1.5zM10.75 9.5a.75.75 0 01-1.5 0V6.75a.75.75 0 011.5 0V9.5z" fill={T.blue}/></svg><p style={{color:T.textMid,fontSize:13,fontFamily:FONT,lineHeight:1.5,margin:0}}>You won't be added to any automated mailing lists. A real member of our team will reach out to you personally. No spam, we promise.</p></div></FadeIn><ContinueButton onClick={next} delay={500} disabled={!data.email.trim()||data.phone.replace(/\D/g,"").length<10} /></>}</>;
 
-    case 6: return <><RevealText text="Have you worked with a debt collection agency before?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes","No"].map(opt=>{const a=data.priorAgency===opt; return <button key={opt} onClick={()=>setData(d=>({...d,priorAgency:opt}))} style={{padding:"12px 36px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.priorAgency==="Yes" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 25 years specializing in residential rental collections, we think you'll notice the difference.</p></FadeIn>}{data.priorAgency==="No" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No worries at all. We'll walk you through the entire process. Over 25 years of experience means we've made it as simple as possible for first-timers.</p></FadeIn>}{data.priorAgency && <ContinueButton onClick={next} delay={200} />}</>}</>;
+    case "priorAgency": return <><RevealText text="Have you worked with a debt collection agency before?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes","No"].map(opt=>{const a=data.priorAgency===opt; return <button key={opt} onClick={()=>setData(d=>({...d,priorAgency:opt}))} style={{padding:"12px 36px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.priorAgency==="Yes" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 25 years specializing in residential rental collections, we think you'll notice the difference.</p></FadeIn>}{data.priorAgency==="No" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No worries at all. We'll walk you through the entire process. Over 25 years of experience means we've made it as simple as possible for first-timers.</p></FadeIn>}{data.priorAgency && <ContinueButton onClick={next} delay={200} />}</>}</>;
 
-    case 7: return <><RevealText text="What kind of debts are you looking to get collected?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><MultiSelect options={DEBT_TYPES} selected={data.debtTypes} onToggle={opt=>setData(d=>({...d,debtTypes:d.debtTypes.includes(opt)?d.debtTypes.filter(x=>x!==opt):[...d.debtTypes,opt]}))} delay={200} />{data.debtTypes.includes("Other") && <TextInput value={data.customDebtType||""} onChange={v=>setData(d=>({...d,customDebtType:v}))} placeholder="Describe the type of debt you need collected" delay={100} />}<ContinueButton onClick={next} delay={400} disabled={data.debtTypes.length===0||(data.debtTypes.includes("Other")&&!(data.customDebtType||"").trim())} /></>}</>;
+    case "debtTypes": return <><RevealText text="What kind of debts are you looking to get collected?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><MultiSelect options={DEBT_TYPES} selected={data.debtTypes} onToggle={opt=>setData(d=>({...d,debtTypes:d.debtTypes.includes(opt)?d.debtTypes.filter(x=>x!==opt):[...d.debtTypes,opt]}))} delay={200} />{data.debtTypes.includes("Other") && <TextInput value={data.customDebtType||""} onChange={v=>setData(d=>({...d,customDebtType:v}))} placeholder="Describe the type of debt you need collected" delay={100} />}<ContinueButton onClick={next} delay={400} disabled={data.debtTypes.length===0||(data.debtTypes.includes("Other")&&!(data.customDebtType||"").trim())} /></>}</>;
 
-    case 8: if(!data.debtTypes.includes("Residential Rental Debt")){return <><RevealText text="We appreciate your interest!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Advanced Collection Bureau specializes exclusively in residential rental debt collection." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <RevealText text="We'd recommend reaching out to a general collections agency for your specific debt type. We want to make sure you get the best service possible." delay={100} onComplete={()=>markTextDone("c")} className="sub-text" />}{textsDone.c && <FadeIn delay={200}><button onClick={back} style={{marginTop:20,padding:"12px 28px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:15,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></FadeIn>}</>;} return <AutoAdvance onAdvance={next} />;
+    case "debtsNow": return <><RevealText text="Do you have debts you're looking to get collected right now?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes, we have accounts ready","Not yet, but soon"].map(opt=>{const a=data.debtsNow===opt; return <button key={opt} onClick={()=>setData(d=>({...d,debtsNow:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.debtsNow==="Yes, we have accounts ready" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement.</p></FadeIn>}{data.debtsNow==="Not yet, but soon" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list.</p></FadeIn>}{data.debtsNow && <ContinueButton onClick={next} delay={200} />}</>}</>;
 
-    case 9: return <SellSection lines={[{text:"Advanced Collection Bureau is the nation's leading residential rental debt collection agency."},{text:"We train our staff specifically on residential rental collections. We work with thousands of property managers, rental investors, and property portfolios nationally."},{text:"We're happy to be your collection team.", accent:true}]} affirmLabel="That's what I need, let's go" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    // ═══ NON-RESIDENTIAL BRANCH ═══
+    case "nonResBranch": return <><RevealText text="We specialize in residential rental debt, but we know the collections industry inside and out." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'd love to get in touch and recommend a great agency for your specific debt type. We know the ins and outs of what makes a good agency versus a not-so-good one." delay={150} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <RevealText text="If you think you have enough volume for us to build a dedicated team just for you, we'd be happy to discuss that too." delay={150} onComplete={()=>markTextDone("c")} className="sub-text" />}{textsDone.c && <FadeIn delay={200}><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:24}}><button onClick={()=>goTo("nonResStates")} style={{padding:"15px 32px",borderRadius:50,border:"none",background:T.blue,color:"#fff",fontSize:16,fontFamily:FONT,fontWeight:600,cursor:"pointer",boxShadow:`0 4px 18px ${T.blue}44`}}>Get me a recommendation</button><button onClick={()=>goTo("sellAcbPitch")} style={{padding:"15px 32px",borderRadius:50,border:`1.5px solid ${T.border}`,background:"#fff",color:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>I want a dedicated team, let's continue</button></div></FadeIn>}</>;
 
-    case 10: return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states on the map or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={next} delay={350} disabled={data.states.length===0} /></>}</>;
+    case "nonResStates": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={()=>goTo("comments")} delay={350} disabled={data.states.length===0} /></>}</>;
 
-    case 11: return <SellSection lines={[{text:"We've recovered millions for property managers just like you."},{text:"We work on contingency only. There's no add-ons or upfront cost from you, ever. If we don't collect anything, you don't pay, and we don't get paid."}]} affirmLabel="Love it, keep going" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    // ═══ RESIDENTIAL PATH ═══
+    case "sellAcbPitch": return <SellSection lines={[{text:"Advanced Collection Bureau is the nation's leading residential rental debt collection agency."},{text:"We train our staff specifically on residential rental collections. We work with thousands of property managers, rental investors, and property portfolios nationally."},{text:"We're happy to be your collection team.", accent:true}]} affirmLabel="That's what I need, let's go" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
-    case 12: return <><RevealText text="Do you own the properties you manage, or do you manage on behalf of other owners?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>{["We own them","We manage for others","We own and manage for others"].map(opt=>{const a=data.ownershipType===opt; return <button key={opt} onClick={()=>setData(d=>({...d,ownershipType:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.ownershipType==="We own them" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all.</p></FadeIn>}{data.ownershipType==="We manage for others" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions.</p></FadeIn>}{data.ownershipType==="We own and manage for others" && <FadeIn delay={100}><div style={{marginTop:22,padding:"20px 24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}><p style={{color:T.textMid,fontSize:14,fontFamily:FONT,marginBottom:10}}>What percentage of your portfolio do you own?</p><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:T.blue,fontWeight:700,fontSize:22,fontFamily:FONT}}>{data.ownPercent}% own</span><span style={{color:T.textLight,fontWeight:600,fontSize:22,fontFamily:FONT}}>{100-data.ownPercent}% manage</span></div><input type="range" min={0} max={100} value={data.ownPercent} onChange={e=>setData(d=>({...d,ownPercent:parseInt(e.target.value)}))} style={{width:"100%",accentColor:T.blue}}/></div></FadeIn>}{data.ownershipType && <><FadeIn delay={200}><p style={{marginTop:12,color:T.textLight,fontSize:12,fontFamily:FONT,fontStyle:"italic"}}>Your dedicated account rep will know your portfolio by name.</p></FadeIn><ContinueButton onClick={next} delay={250} /></>}</>}</>;
+    case "states": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={next} delay={350} disabled={data.states.length===0} /></>}</>;
 
-    case 13: return <SellSection lines={[{text:"All of our staff are based in the US. We don't outsource to big call centers or use overseas workers."},{text:"We believe in the quality of our staff, which means higher recovery rates for you."}]} affirmLabel="Quality matters, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "sellContingency": return <SellSection lines={[{text:"We've recovered millions for property managers just like you."},{text:"We work on contingency only. There's no add-ons or upfront cost from you, ever. If we don't collect anything, you don't pay, and we don't get paid."}]} affirmLabel="Love it, keep going" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
-    case 14: return <><RevealText text="How many units do you manage in total?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.totalUnits} onChange={v=>setData(d=>({...d,totalUnits:v.replace(/\D/g,"")}))} placeholder="Number of units" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.totalUnits} /></>}</>;
+    case "ownership": return <><RevealText text="Do you own the properties you manage, or do you manage on behalf of other owners?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>{["We own them","We manage for others","We own and manage for others"].map(opt=>{const a=data.ownershipType===opt; return <button key={opt} onClick={()=>setData(d=>({...d,ownershipType:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.ownershipType==="We own them" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all.</p></FadeIn>}{data.ownershipType==="We manage for others" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions.</p></FadeIn>}{data.ownershipType==="We own and manage for others" && <FadeIn delay={100}><div style={{marginTop:22,padding:"20px 24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}><p style={{color:T.textMid,fontSize:14,fontFamily:FONT,marginBottom:10}}>What percentage of your portfolio do you own?</p><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:T.blue,fontWeight:700,fontSize:22,fontFamily:FONT}}>{data.ownPercent}% own</span><span style={{color:T.textLight,fontWeight:600,fontSize:22,fontFamily:FONT}}>{100-data.ownPercent}% manage</span></div><input type="range" min={0} max={100} value={data.ownPercent} onChange={e=>setData(d=>({...d,ownPercent:parseInt(e.target.value)}))} style={{width:"100%",accentColor:T.blue}}/></div></FadeIn>}{data.ownershipType && <><FadeIn delay={200}><p style={{marginTop:12,color:T.textLight,fontSize:12,fontFamily:FONT,fontStyle:"italic"}}>Your dedicated account rep will know your portfolio by name.</p></FadeIn><ContinueButton onClick={next} delay={250} /></>}</>}</>;
 
-    case 15: return <><SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done && <><div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" /></div>{textsDone.list_q && <><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other") && <TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>}</>;
+    case "sellSkipTrace": return <SellSection lines={[{text:"We invest in the latest skip tracing technology to locate and contact past-due tenants quickly."},{text:"Skip tracing is the process of tracking down tenants who have moved without paying. Using advanced databases, public records, and proprietary tools, we find them so your debt doesn't just disappear."}]} affirmLabel="That's impressive, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
-    case 16: return <><RevealText text="What property management software do you use?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply, or skip if you don't use any</p></FadeIn><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>({...d,pmSoftware:(d.pmSoftware||[]).includes(opt)?(d.pmSoftware||[]).filter(x=>x!==opt):[...(d.pmSoftware||[]),opt]}))} delay={200} />{(data.pmSoftware||[]).includes("Other") && <TextInput value={data.customPM||""} onChange={v=>setData(d=>({...d,customPM:v}))} placeholder="What software do you use?" delay={100} />}<div style={{display:"flex",gap:12,marginTop:24,flexWrap:"wrap"}}><ContinueButton onClick={next} delay={350} disabled={(data.pmSoftware||[]).length===0} /><FadeIn delay={400}><button onClick={()=>{setData(d=>({...d,pmSoftware:["None"],customPM:""}));next();}} style={{marginTop:28,padding:"15px 36px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:16,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>We don't use any</button></FadeIn></div></>}</>;
+    case "units": return <><RevealText text="How many units do you manage in total?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.totalUnits} onChange={v=>setData(d=>({...d,totalUnits:v.replace(/\D/g,"")}))} placeholder="Number of units" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.totalUnits} /></>}</>;
 
-    case 17: return <><RevealText text="Almost done!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Do you have any questions or comments for our team?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noQuestions && <TextArea value={data.comments||""} onChange={v=>setData(d=>({...d,comments:v}))} placeholder="Any questions, comments, or things we should know..." delay={150} />}<FadeIn delay={250}><div role="button" tabIndex={0} onClick={()=>setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}))} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}));}}} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:data.noQuestions?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:data.noQuestions?T.blueLight:"#fff",color:data.noQuestions?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:data.noQuestions?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{data.noQuestions && "✓ "}Nope, all good!</div></FadeIn>{(data.noQuestions||(data.comments||"").trim()) && <ContinueButton onClick={next} label="Submit" delay={200} />}</>}</>;
+    case "sellBigPortfolio": {
+      if (!bigPortfolio) return <AutoAdvance onAdvance={next} />;
+      return <SellSection lines={[{text:`${parseInt(data.totalUnits).toLocaleString()} units? That's a serious portfolio.`},{text:"For portfolios your size, we personally check in with all your property managers and have them send debts right to us. We'll also assist with training and onboarding new property managers to your company to take that weight off your shoulders."}]} affirmLabel="That would be a huge help" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    }
 
-    case 18: return <><Confetti /><RevealText text={`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <FadeIn delay={300}><div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p></div></FadeIn>}</>;
+    case "sellUsStaff": return <SellSection lines={[{text:"All of our staff are based in the US. We don't outsource to big call centers or use overseas workers."},{text:"We believe in the quality of our staff, which means higher recovery rates for you."}]} affirmLabel="Quality matters, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+
+    case "rentalTypes": return <><RevealText text="What types of residential rentals do you manage?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={RENTAL_TYPES} selected={data.rentalTypes||[]} onToggle={opt=>setData(d=>({...d,rentalTypes:(d.rentalTypes||[]).includes(opt)?(d.rentalTypes||[]).filter(x=>x!==opt):[...(d.rentalTypes||[]),opt]}))} delay={200} />{(data.rentalTypes||[]).length > 0 && <ContinueButton onClick={next} delay={300} />}</>}</>;
+
+    case "propertyTypes": return <><RevealText text="What types of properties are in your portfolio?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={PROPERTY_TYPES} selected={data.propertyTypes||[]} onToggle={opt=>setData(d=>({...d,propertyTypes:(d.propertyTypes||[]).includes(opt)?(d.propertyTypes||[]).filter(x=>x!==opt):[...(d.propertyTypes||[]),opt]}))} delay={200} />{(data.propertyTypes||[]).length > 0 && <ContinueButton onClick={next} delay={300} />}</>}</>;
+
+    case "avgRent": {
+      const sliderPos = data.rentSliderPos ?? rentValueToSlider(1500);
+      const rentVal = rentSliderToValue(sliderPos);
+      return <><RevealText text="What's the average monthly rental rate per unit?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{marginTop:20,padding:"24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}>
+        <div style={{textAlign:"center",marginBottom:16}}><span style={{fontSize:36,fontWeight:700,color:T.blue,fontFamily:FONT}}>{formatRent(rentVal)}</span><span style={{fontSize:14,color:T.textLight,fontFamily:FONT,marginLeft:6}}>/ month</span></div>
+        <input type="range" min={0} max={RENT_TICKS.length-1} value={sliderPos} onChange={e=>{const pos=parseInt(e.target.value);setData(d=>({...d,rentSliderPos:pos,avgRent:rentSliderToValue(pos)}));}} style={{width:"100%",accentColor:T.blue,height:8}} />
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$500</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$5,000</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$100,000+</span></div>
+      </div></FadeIn><ContinueButton onClick={next} delay={300} /></>}</>;
+    }
+
+    case "listings": return <><SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done && <><div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" /></div>{textsDone.list_q && <><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other") && <TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>}</>;
+
+    case "pmSoftware": return <><RevealText text="What property management software do you use?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply, or skip if you don't use any</p></FadeIn><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>({...d,pmSoftware:(d.pmSoftware||[]).includes(opt)?(d.pmSoftware||[]).filter(x=>x!==opt):[...(d.pmSoftware||[]),opt]}))} delay={200} />{(data.pmSoftware||[]).includes("Other") && <TextInput value={data.customPM||""} onChange={v=>setData(d=>({...d,customPM:v}))} placeholder="What software do you use?" delay={100} />}<div style={{display:"flex",gap:12,marginTop:24,flexWrap:"wrap"}}><ContinueButton onClick={next} delay={350} disabled={(data.pmSoftware||[]).length===0} /><FadeIn delay={400}><button onClick={()=>{setData(d=>({...d,pmSoftware:["None"],customPM:""}));next();}} style={{marginTop:28,padding:"15px 36px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:16,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>We don't use any</button></FadeIn></div></>}</>;
+
+    case "sellReporting": {
+      if (!bigPortfolio) return <AutoAdvance onAdvance={next} />;
+      return <SellSection lines={[{text:"For portfolios your size, we offer customized reporting."},{text:"We tailor the data to show the metrics you care about most, so you always know exactly where your accounts stand."}]} affirmLabel="That's exactly what I need" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    }
+
+    case "sellStrategy": return <SellSection lines={[{text:"We take the time to understand your unique needs and craft a customized debt recovery strategy just for you."},{text:"No cookie-cutter approaches. Your portfolio is unique, and your recovery plan should be too."}]} affirmLabel="Let's wrap this up" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+
+    // ═══ SHARED FINAL ═══
+    case "comments": return <><RevealText text="Almost done!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Do you have any questions or comments for our team?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noQuestions && <TextArea value={data.comments||""} onChange={v=>setData(d=>({...d,comments:v}))} placeholder="Any questions, comments, or things we should know..." delay={150} />}<FadeIn delay={250}><div role="button" tabIndex={0} onClick={()=>setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}))} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}));}}} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:data.noQuestions?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:data.noQuestions?T.blueLight:"#fff",color:data.noQuestions?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:data.noQuestions?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{data.noQuestions && "✓ "}Nope, all good!</div></FadeIn>{(data.noQuestions||(data.comments||"").trim()) && <ContinueButton onClick={next} label="Submit" delay={200} />}</>}</>;
+
+    case "done": return <><Confetti /><RevealText text={`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <FadeIn delay={300}><div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p></div></FadeIn>}</>;
 
     default: return null;
   }
 }
 
+// Step flow definitions
+const RESIDENTIAL_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","sellAcbPitch","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","rentalTypes","propertyTypes","avgRent","listings","pmSoftware","sellReporting","sellStrategy","comments","done"];
+const NON_RES_SHORT_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","nonResStates","comments","done"];
+
 function LeadIntakeForm() {
-  const [step, setStep] = useState(0);
-  const [data, setData] = useState({ fullName:"", companyName:"", noCompany:false, companyWebsite:"", noWebsite:false, certifyNoDebt:false, certifyOwesDebt:false, email:"", phone:"", priorAgency:"", debtTypes:[], customDebtType:"", states:[], ownershipType:"", ownPercent:50, totalUnits:"", listingSites:[], customListing:"", pmSoftware:[], customPM:"", comments:"", noQuestions:false });
+  const [stepIndex, setStepIndex] = useState(0);
+  const [flow, setFlow] = useState(RESIDENTIAL_FLOW);
+  const [data, setData] = useState({ fullName:"", companyName:"", noCompany:false, companyWebsite:"", noWebsite:false, certifyNoDebt:false, certifyOwesDebt:false, email:"", phone:"", priorAgency:"", debtTypes:[], customDebtType:"", debtsNow:"", states:[], ownershipType:"", ownPercent:50, totalUnits:"", rentalTypes:[], propertyTypes:[], avgRent:1500, rentSliderPos:rentValueToSlider(1500), listingSites:[], customListing:"", pmSoftware:[], customPM:"", comments:"", noQuestions:false });
   const [textsDone, setTextsDone] = useState({});
   const trackingData = useRef({ location: "Loading...", device: "", referrer: "", timezone: "" });
 
-  // Collect tracking data on mount
   useEffect(() => {
-    // Device info
     const ua = navigator.userAgent;
-    let device = "Unknown";
-    if (/Mobile|Android|iPhone|iPad/i.test(ua)) {
-      device = /iPad/i.test(ua) ? "Tablet" : "Mobile";
-    } else {
-      device = "Desktop";
-    }
-    let browser = "Unknown";
-    if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
-    else if (ua.includes("Firefox")) browser = "Firefox";
-    else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
-    else if (ua.includes("Edg")) browser = "Edge";
-    let os = "Unknown";
-    if (ua.includes("Windows")) os = "Windows";
-    else if (ua.includes("Mac OS")) os = "macOS";
-    else if (ua.includes("Linux")) os = "Linux";
-    else if (ua.includes("Android")) os = "Android";
-    else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+    let device = /Mobile|Android|iPhone|iPad/i.test(ua) ? (/iPad/i.test(ua) ? "Tablet" : "Mobile") : "Desktop";
+    let browser = ua.includes("Chrome") && !ua.includes("Edg") ? "Chrome" : ua.includes("Firefox") ? "Firefox" : ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" : ua.includes("Edg") ? "Edge" : "Unknown";
+    let os = ua.includes("Windows") ? "Windows" : ua.includes("Mac OS") ? "macOS" : ua.includes("Linux") ? "Linux" : ua.includes("Android") ? "Android" : (ua.includes("iPhone")||ua.includes("iPad")) ? "iOS" : "Unknown";
     trackingData.current.device = `${device} / ${browser} / ${os}`;
 
-    // Original referrer: try to get what brought them to advancedcb.com, not just the iframe parent
     let originalRef = "(Direct visit)";
-    try {
-      // Check if parent page stored the original referrer
-      if (window.parent && window.parent !== window) {
-        try { originalRef = window.parent.document.referrer || "(Direct visit)"; } catch(e) {}
-      } else {
-        originalRef = document.referrer || "(Direct visit)";
-      }
-      // Clean it up - if it's your own site, that's not useful
-      if (originalRef && originalRef !== "(Direct visit)") {
-        const refHost = new URL(originalRef).hostname;
-        if (refHost.includes("advancedcb.com") || refHost.includes("advancedcollectionbureau")) {
-          originalRef = "(Internal navigation)";
-        } else {
-          originalRef = refHost + new URL(originalRef).pathname;
-        }
-      }
+    try { if (window.parent && window.parent !== window) { try { originalRef = window.parent.document.referrer || "(Direct visit)"; } catch(e) {} } else { originalRef = document.referrer || "(Direct visit)"; }
+      if (originalRef && originalRef !== "(Direct visit)") { const refHost = new URL(originalRef).hostname; if (refHost.includes("advancedcb.com") || refHost.includes("advancedcollectionbureau")) { originalRef = "(Internal navigation)"; } else { originalRef = refHost + new URL(originalRef).pathname; } }
     } catch(e) { originalRef = "(Could not determine)"; }
     trackingData.current.referrer = originalRef;
 
-    // UTM params from parent iframe or current URL
-    try {
-      let params = new URLSearchParams(window.location.search);
-      // Also try parent URL for UTMs
-      try { if (window.parent && window.parent !== window) { const pp = new URLSearchParams(window.parent.location.search); pp.forEach((v,k) => { if (!params.has(k)) params.set(k,v); }); } } catch(e) {}
-      const utms = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", ");
-      if (utms) trackingData.current.referrer += ` | UTMs: ${utms}`;
+    try { let params = new URLSearchParams(window.location.search); try { if (window.parent && window.parent !== window) { const pp = new URLSearchParams(window.parent.location.search); pp.forEach((v,k) => { if (!params.has(k)) params.set(k,v); }); } } catch(e) {}
+      const utms = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", "); if (utms) trackingData.current.referrer += ` | UTMs: ${utms}`;
     } catch(e) {}
 
-    // Timezone from browser
     try { trackingData.current.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { trackingData.current.timezone = "(Unknown)"; }
 
-    // IP / Location + timezone from IP
-    fetch("https://ipapi.co/json/")
-      .then(r => r.json())
-      .then(d => {
-        trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;
-        if (d.timezone) trackingData.current.timezone = d.timezone;
-      })
-      .catch(() => {
-        fetch("https://ipinfo.io/json?token=")
-          .then(r => r.json())
-          .then(d => {
-            trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;
-            if (d.timezone) trackingData.current.timezone = d.timezone;
-          })
-          .catch(() => { trackingData.current.location = "(Could not determine)"; });
-      });
+    fetch("https://ipapi.co/json/").then(r => r.json()).then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`; if (d.timezone) trackingData.current.timezone = d.timezone; }).catch(() => {
+      fetch("https://ipinfo.io/json?token=").then(r => r.json()).then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`; if (d.timezone) trackingData.current.timezone = d.timezone; }).catch(() => { trackingData.current.location = "(Could not determine)"; });
+    });
   }, []);
 
   const markTextDone = useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));}, []);
 
+  const currentStep = flow[stepIndex] || "done";
+
   const submitForm = useCallback((formData) => {
     const t = trackingData.current;
-
-    // EST submission time
     const now = new Date();
     const estTime = now.toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) + " EST";
-
-    // Make website a clickable link for the email
     let websiteVal = "(No website)";
-    if (!formData.noWebsite && formData.companyWebsite) {
-      let url = formData.companyWebsite;
-      if (!/^https?:\/\//i.test(url)) url = "https://" + url;
-      websiteVal = `<a href="${url}">${formData.companyWebsite}</a>`;
-    }
+    if (!formData.noWebsite && formData.companyWebsite) { let url = formData.companyWebsite; if (!/^https?:\/\//i.test(url)) url = "https://" + url; websiteVal = `<a href="${url}">${formData.companyWebsite}</a>`; }
+    const isRes = formData.debtTypes.includes("Residential Rental Debt");
 
     const payload = {
       "Name": formData.fullName,
       "Company": formData.noCompany ? "(Independent owner)" : formData.companyName,
-      "Total Units": formData.totalUnits,
-      "Ownership": formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : ""),
       "Email": formData.email,
       "Phone Number": formData.phone,
       "Website": websiteVal,
       "Debt Types": formData.debtTypes.join(", ") + (formData.customDebtType ? ` (${formData.customDebtType})` : ""),
-      "Listing Sites": formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : ""),
-      "PM Software": (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : ""),
+      "Debts Ready Now": formData.debtsNow || "(Not answered)",
       "Prior Collection Agency": formData.priorAgency || "(Not answered)",
       "States": formData.states.join(", "),
-      "Comments": formData.noQuestions ? "(No questions)" : (formData.comments || "(None)"),
-      "Location / IP": t.location,
-      "Device": t.device,
-      "Referrer": t.referrer,
-      "Likely Timezone": t.timezone,
-      "Submitted (EST)": estTime,
-      _subject: "New Lead: " + formData.fullName + (formData.companyName ? " - " + formData.companyName : ""),
-      _captcha: "false",
-      _template: "table",
-      _replyto: formData.email,
     };
+    if (isRes) {
+      payload["Ownership"] = formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : "");
+      payload["Total Units"] = formData.totalUnits;
+      payload["Rental Types"] = (formData.rentalTypes || []).join(", ");
+      payload["Property Types"] = (formData.propertyTypes || []).join(", ");
+      payload["Avg Rent / Unit"] = formatRent(formData.avgRent || 1500);
+      payload["Listing Sites"] = formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : "");
+      payload["PM Software"] = (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : "");
+    }
+    payload["Comments"] = formData.noQuestions ? "(No questions)" : (formData.comments || "(None)");
+    payload["Location / IP"] = t.location;
+    payload["Device"] = t.device;
+    payload["Referrer"] = t.referrer;
+    payload["Likely Timezone"] = t.timezone;
+    payload["Submitted (EST)"] = estTime;
+    payload._subject = `${formData.fullName} | ${formData.noCompany ? "Independent" : formData.companyName} | Units: ${formData.totalUnits || "N/A"}`;
+    payload._captcha = "false";
+    payload._template = "table";
+    payload._replyto = formData.email;
     if (CC_EMAILS) payload._cc = CC_EMAILS;
 
     console.log("Form submitted:", payload);
     if (FORMSUBMIT_ID) {
-      fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify(payload)
-      }).then(r => r.json()).then(d => console.log("FormSubmit response:", d)).catch(err => console.error("Submit error:", err));
+      fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(payload) }).then(r => r.json()).then(d => console.log("FormSubmit response:", d)).catch(err => console.error("Submit error:", err));
     }
   }, []);
 
   const next = useCallback(()=>{
-    setStep(s => {
-      if (s === 17) submitForm(data);
-      setTextsDone({});
-      window.scrollTo({top:0,behavior:"smooth"});
-      return s + 1;
-    });
-  }, [data, submitForm]);
-  const back = useCallback(()=>{setTextsDone({});setStep(s=>Math.max(0,s-1));}, []);
-  const progress = Math.round((step/TOTAL_STEPS)*100);
+    setTextsDone({});
+    const curStep = flow[stepIndex];
 
-  // Global Enter key handler
+    // Branch: after debtsNow, check if residential
+    if (curStep === "debtsNow" && !data.debtTypes.includes("Residential Rental Debt")) {
+      setFlow(NON_RES_SHORT_FLOW);
+      setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
+      window.scrollTo({top:0,behavior:"smooth"});
+      return;
+    }
+
+    // Submit on last real step (comments -> done)
+    if (curStep === "comments") {
+      submitForm(data);
+    }
+
+    setStepIndex(i => i + 1);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }, [data, submitForm, flow, stepIndex]);
+
+  const goTo = useCallback((stepName) => {
+    setTextsDone({});
+    // If going to sellAcbPitch, switch to residential flow
+    if (stepName === "sellAcbPitch") {
+      setFlow(RESIDENTIAL_FLOW);
+      setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));
+    } else if (stepName === "nonResStates") {
+      setFlow(NON_RES_SHORT_FLOW);
+      setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));
+    } else if (stepName === "comments") {
+      // Find comments in current flow
+      const idx = flow.indexOf("comments");
+      if (idx >= 0) setStepIndex(idx);
+    }
+    window.scrollTo({top:0,behavior:"smooth"});
+  }, [flow]);
+
+  const back = useCallback(()=>{setTextsDone({});setStepIndex(i=>Math.max(0,i-1));window.scrollTo({top:0,behavior:"smooth"});}, []);
+
+  const totalSteps = flow.length;
+  const progress = Math.round((stepIndex / (totalSteps - 1)) * 100);
+
   useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
-        const btn = document.querySelector(".continue-btn:not(:disabled)");
-        if (btn) btn.click();
-      }
-    };
+    const handler = (e) => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && !e.target.closest('[role="button"]')) { const btn = document.querySelector(".continue-btn:not(:disabled)"); if (btn) btn.click(); } };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
@@ -516,14 +571,12 @@ function LeadIntakeForm() {
     `}</style>
     <ProgressBar progress={progress} />
     <div className="form-outer">
-      <div className="step-card"><StepContent key={step} step={step} data={data} setData={setData} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} /></div>
-      {step>0 && step<18 && <button className="back-btn" onClick={back}>Back</button>}
+      <div className="step-card"><StepContent key={currentStep + stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} /></div>
+      {stepIndex > 0 && currentStep !== "done" && <button className="back-btn" onClick={back}>Back</button>}
     </div>
   </>;
 }
 
-
-    // Mount the app
     const root = ReactDOM.createRoot(document.getElementById("root"));
     root.render(React.createElement(LeadIntakeForm));
   </script>
