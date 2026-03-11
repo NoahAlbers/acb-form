@@ -513,10 +513,15 @@ function LeadIntakeForm() {
     setTextsDone({});
     const curStep = flow[stepIndex];
 
-    // Branch: after debtsNow, check if residential
-    if (curStep === "debtsNow" && !data.debtTypes.includes("Residential Rental Debt")) {
-      setFlow(NON_RES_SHORT_FLOW);
-      setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
+    // Branch: after debtsNow, always re-evaluate the correct path
+    if (curStep === "debtsNow") {
+      if (data.debtTypes.includes("Residential Rental Debt")) {
+        setFlow(RESIDENTIAL_FLOW);
+        setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow") + 1);
+      } else {
+        setFlow(NON_RES_SHORT_FLOW);
+        setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
+      }
       window.scrollTo({top:0,behavior:"smooth"});
       return;
     }
