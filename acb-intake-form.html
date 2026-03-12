@@ -10,12 +10,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #F4F5F9; min-height: 100vh; font-family: 'Outfit', sans-serif; }
-    @keyframes confetti-fall {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:#F4F5F9;min-height:100vh;font-family:'Outfit',sans-serif;}
+    @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
+    @keyframes count-up{0%{opacity:0;transform:scale(0.8);}100%{opacity:1;transform:scale(1);}}
+    @keyframes logo-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
   </style>
 </head>
 <body>
@@ -27,14 +26,10 @@
      * ============================================================
      * CONFIGURATION
      * ============================================================
-     * FORMSUBMIT_ID: Your FormSubmit hash (replaces your email for security).
-     * CC_EMAILS: Additional emails to receive submissions (comma-separated).
-     * Set FORMSUBMIT_ID to "" to disable (data logs to console instead).
-     * ============================================================
      */
     const FORMSUBMIT_ID = "dfeca48013a9d6519627f295dd99503c";
     const CC_EMAILS = "";
-
+    const CLARITY_PROJECT_ID = "qo6gcqjdc7";
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -90,504 +85,505 @@ const SVG_PATHS = {
 "MI":"m 719.96309,138.2002 -0.48532,-0.77651 -0.0971,0.97063 0.58238,-0.19412 z m 1.55301,-1.74714 -1.16476,-1.55301 -0.19413,0.67944 1.35889,0.87357 z m 0.97063,-6.98854 -0.97063,-0.87357 0,0.19412 0.97063,0.67945 z m -2.42658,76.00042 12.03583,-1.94126 3.39721,-0.67944 14.85065,-2.62071 0.29119,1.26182 0.97063,-0.29119 6.40617,-1.35888 6.11498,-1.45595 6.21204,-1.55301 -0.0971,-0.29119 3.20309,-6.3091 -0.29119,-5.24141 3.59133,-9.02687 2.81483,1.65007 1.0677,-2.03832 -0.29119,-7.76505 -2.62071,-4.85316 -3.88252,-10.28869 -3.39721,-3.78546 -1.74714,-0.48531 -6.3091,4.36784 0.67944,0.87356 -3.30014,6.21204 -3.20309,-0.58238 -0.97063,-6.50322 1.35889,-0.48532 2.81483,-6.50323 0.29119,-11.45345 -4.36784,-9.70631 -9.70632,-1.65007 -0.97063,-1.45595 -9.02687,-2.6207 -4.07665,5.04728 0.38825,4.36784 -3.10602,3.88252 0.67945,6.01792 -3.00896,2.13539 0,-7.57093 -2.71777,5.72673 -3.20308,5.04728 -2.13539,1.65007 1.06769,5.33847 -1.35888,5.5326 0.77651,6.89148 -0.97064,3.39721 6.98855,13.39471 0.87357,5.14435 -0.87357,9.51218 -4.65903,10.67695 -0.58238,0.38825 z m 20.77151,-87.45387 -2.52364,0.19412 1.55301,1.16476 0.97063,-1.35888 z m -14.7536,2.52364 -0.7765,0 0.87357,0.38825 -0.0971,-0.38825 z m 16.98605,-12.32702 -0.97063,-1.55301 -0.38825,0.0971 1.35888,1.45594 z m -87.93919,7.08561 3.10602,1.74714 15.91835,4.85315 7.3768,1.94127 7.18267,0.48531 5.24141,4.27078 0,6.60029 4.65903,4.65903 0,-0.0971 3.78546,-10.96814 4.56197,-3.20308 3.49427,-3.88252 0.58238,3.49427 3.59134,-5.5326 8.63861,-3.30014 0.67945,-1.35889 8.73568,1.0677 3.39721,1.74713 1.65007,-4.27077 1.55301,0.97063 6.79442,-1.0677 -1.65008,-2.71777 -3.00895,-1.74713 0.58238,-6.3091 -5.92085,3.30014 -5.43554,-0.67944 -1.74714,-4.17371 0.58238,-1.358888 -7.37679,3.494268 -4.7561,0.29119 -8.54155,5.24141 -0.97063,1.94126 -5.24141,-1.26182 -3.30015,1.45595 -6.60029,-5.72672 -14.65653,-4.46491 -0.29119,-1.747133 -9.41512,9.026873 -5.33847,1.35888 -7.57093,5.72673 -0.29119,0.19412 z m 34.36035,-22.033327 -11.35639,5.629661 3.78546,3.688396 1.45595,-3.688396 3.88253,-4.756093 2.23245,-0.873568 z M 676.77,79.962326 l -7.76505,5.338471 -0.38825,2.620704 6.11497,-4.464903 2.03833,-3.494272 z",
 "AK":"m 101.28276,542.95341 -0.48532,0.19412 0.38826,0.0971 0.0971,-0.29119 z m 3.59134,0.58238 0,0 0,0.0971 0,-0.0971 z m -1.74714,-1.65008 0,0.29119 0.19413,-0.0971 -0.19413,-0.19413 z m -0.87357,-0.48531 0,-0.0971 0,0 0,0.0971 z m 1.8442,0.97063 0,-0.19413 -0.0971,0.0971 0.0971,0.0971 z m -0.19413,-0.19413 0,-0.0971 -0.19412,0 0.19412,0.0971 z m -75.709229,-63.77047 -0.09706,0.67945 0.194126,1.94126 -0.09706,-2.62071 z m -0.485315,-2.6207 0.09706,0.87357 0.09706,-0.29119 -0.194126,-0.58238 z m 76.194544,65.22642 0.0971,-0.58238 -0.38825,0.19412 0.29118,0.38826 z m 11.0652,4.75609 -0.0971,-0.0971 0.19412,0.38825 -0.0971,-0.29119 z m -7.18267,-3.39721 -1.06769,-0.97063 0,2.32951 1.06769,-1.35888 z m 2.42658,2.13539 -0.0971,-0.67944 -1.65007,-0.0971 1.74714,0.77651 z m 5.82378,1.35888 -0.0971,0.19413 0.19413,0 -0.0971,-0.19413 z m 0.38826,0.0971 -0.19413,0 0.38825,0.0971 -0.19412,-0.0971 z m 1.16475,0.38826 -0.0971,0 -0.0971,0 0.19412,0 z m -85.70673,-65.8088 0.388252,0.0971 0.29119,-0.0971 -0.679442,0 z m 83.57135,64.44991 -0.77651,-0.0971 0.29119,0.29119 0.48532,-0.19413 z m -88.812759,-72.02083 -1.358883,-0.58238 -0.09706,0.29119 1.455947,0.29119 z m 91.239329,72.21496 -0.19412,-0.0971 0,0.0971 0.19412,0 z m 5.92085,1.16476 -3.78546,0.29119 -0.87357,0.38825 4.65903,-0.67944 z m -104.05166,-88.61863 -1.067695,0 0.194127,0.29119 0.873568,-0.29119 z m 115.7963,93.08353 0,-0.38825 -0.19412,0 0.19412,0.38825 z m 5.04728,0.0971 0.19413,-0.19412 -0.19413,-0.19413 0,0.38825 z m 3.78547,1.0677 0.19412,-0.0971 -0.0971,0 -0.0971,0.0971 z m -3.10602,-1.74714 -0.0971,-0.38825 -0.19412,0 0.29119,0.38825 z m 6.50322,1.45595 -0.0971,0.0971 0.0971,0 0,-0.0971 z m -127.443872,-98.90732 -1.455946,0.19413 1.844199,1.65007 -0.388253,-1.8442 z m 122.299532,97.45137 0.19413,-0.58238 -0.0971,0 -0.0971,0.58238 z m 16.40367,-1.45594 0.0971,-0.19413 -0.19413,-0.0971 0.0971,0.29119 z m -2.42658,-0.87357 -3.39721,3.00895 2.42658,-0.19412 2.81483,-2.23245 -1.8442,-0.58238 z m 6.11498,1.06769 -0.67945,-0.19412 0.48532,0.38825 0.19413,-0.19413 z m 1.35888,0.0971 -1.0677,-0.29118 -0.19412,0.0971 1.26182,0.19412 z m -3.6884,-1.35888 -1.06769,0 1.8442,0.48532 -0.77651,-0.48532 z m 4.4649,0.97063 -0.0971,-0.19412 -0.38825,0.0971 0.48531,0.0971 z m -2.91189,-1.16476 -0.38825,-0.19412 0,1.06769 0.38825,-0.87357 z m 12.42408,2.42658 -0.0971,-0.0971 -0.19413,0 0.29119,0.0971 z m 0.19413,-0.0971 0,-0.0971 -0.19413,-0.0971 0.19413,0.19413 z m -1.65008,-0.58238 0.19413,0.38825 0,-0.0971 -0.19413,-0.29119 z m 0.87357,0 -0.87357,-0.29119 1.0677,0.77651 -0.19413,-0.48532 z m 1.26182,-0.97063 0,0 0,0.0971 0,-0.0971 z m 11.55051,1.45595 -0.19412,-0.38826 -0.0971,0 0.29119,0.38826 z m 104.43992,-6.50323 -0.19413,-0.19413 0.0971,0.19413 0.0971,0 z m -117.6405,3.00895 0,-0.0971 -0.0971,0.0971 0.0971,0 z m 120.45533,-4.75609 0.29119,0.38825 0.19413,0 -0.48532,-0.38825 z m -106.08999,7.27974 -0.0971,0.0971 0,0.29119 0.0971,-0.38825 z m -12.03583,-1.74714 0.19413,-0.77651 -0.0971,0 -0.0971,0.77651 z m 123.75548,-7.76505 -0.87357,0.48532 0.77651,0.38825 0.0971,-0.87357 z m -122.00834,7.27973 -0.0971,-0.19412 0.0971,0.19412 0,0 z m -7.27973,-2.13539 -2.42658,0.48532 -2.13539,2.81483 4.56197,-3.30015 z m 17.37429,3.6884 -0.58237,0.48532 0.58237,-0.0971 0,-0.38826 z m 111.91378,-9.31806 -0.19412,-0.38825 -0.0971,0.19413 0.29119,0.19412 z m -121.23184,6.79442 -0.67944,-0.0971 0.67944,0.67944 0,-0.58238 z m 114.82568,-5.5326 -0.19413,0.19413 0.19413,0.67944 0,-0.87357 z m -113.27267,5.43554 -0.29118,0.0971 0.38825,0.29119 -0.0971,-0.38825 z m 7.18268,2.03832 -0.29119,0 -0.19413,-0.19412 0.48532,0.19412 z m -7.95918,-2.03832 -0.48532,-0.29119 0.19413,0.29119 0.29119,0 z m 6.50323,1.06769 -0.87357,0.29119 -0.58238,1.55301 1.45595,-1.8442 z m 105.41055,-6.79441 0,0.67944 0.38825,-0.48532 -0.38825,-0.19412 z m -116.864,3.68839 0.77651,-0.19412 -0.0971,0 -0.67944,0.19412 z m -0.97063,-0.58238 -0.19413,-0.19412 0,0.0971 0.19413,0.0971 z m 117.83463,-3.78546 -0.19413,-0.0971 -0.0971,0.29119 0.29119,-0.19413 z m -106.47825,5.82379 -0.19412,-0.0971 -0.19413,0.29119 0.38825,-0.19413 z m 105.50762,-5.62966 0.0971,-0.48532 -0.19413,-0.0971 0.0971,0.58238 z m -0.77651,-0.48532 -0.29119,0.38826 0.48532,0.0971 -0.19413,-0.48532 z m -100.65445,4.7561 -0.19413,-0.19413 -0.0971,0 0.29119,0.19413 z m 100.36326,-6.50323 0.77651,0.29119 0.29119,-0.38826 -1.0677,0.0971 z m 1.16476,-0.67944 -0.29119,0.19412 0.48532,0.29119 -0.19413,-0.48531 z m -2.23245,0.58237 -0.19413,-0.38825 -0.19413,0.19413 0.38826,0.19412 z m 9.70631,-3.59133 -1.26182,3.59133 1.26182,-0.7765 0,-2.81483 z m -115.0198,7.47386 -0.0971,0 0,0 0.0971,0 z m 106.47824,-6.11498 -0.87356,0.87357 0.19412,0.97063 0.67944,-1.8442 z m -90.36576,7.76505 0,-0.38825 -0.0971,0.19413 0.0971,0.19412 z m 89.29807,-8.73568 2.81483,4.27078 6.3091,3.97959 -1.45594,-3.39721 -6.01792,-5.14435 -1.65007,0.29119 z m -93.18059,7.18267 -0.0971,-0.29119 -0.19412,0.0971 0.29119,0.19412 z m 96.48074,-8.83274 -0.38826,1.45595 0.67945,-0.48532 -0.29119,-0.97063 z m 2.03832,0 -0.0971,0.97063 0.87357,0.29119 -0.77651,-1.26182 z m -95.41305,7.57092 -0.48531,-0.0971 -0.48532,0.19413 0.97063,-0.0971 z m 9.99751,0.77651 -0.38826,0.67944 0.19413,-0.58238 0.19413,-0.0971 z m 1.45594,0.0971 -0.87357,0.0971 0.48532,0.58238 0.38825,-0.67944 z m -58.82025,-12.42408 0.97063,0.48532 -0.19412,-0.19413 -0.77651,-0.29119 z m 38.53406,9.60925 0.0971,-0.0971 -0.0971,0.0971 0,0 z m 0.29119,-0.0971 0.0971,0 0,-0.0971 -0.0971,0.0971 z m 100.36327,-7.47386 0.48531,1.8442 0.97063,-0.58238 -1.45594,-1.26182 z m -97.74257,6.40616 0.0971,-0.0971 0,0 -0.0971,0.0971 z m 93.56885,-5.62966 0.48532,4.4649 0.97063,-0.97063 -1.45595,-3.49427 z m 0.48532,-1.45595 2.23245,3.10602 -0.29119,-2.03832 -1.94126,-1.0677 z m -6.89148,0.77651 -0.58238,1.8442 0.7765,-1.26182 -0.19412,-0.58238 z m -77.6505,4.75609 -0.0971,-0.0971 0.0971,0.0971 0,0 z m 9.221,0.19413 -0.19413,-0.29119 0.19413,0.38825 0,-0.0971 z m 68.62362,-6.40617 3.88253,6.40617 -0.58238,-4.36784 -3.30015,-2.03833 z m -63.18809,3.39721 -0.29119,0.29119 0.48532,0.19413 -0.19413,-0.48532 z m -1.26182,0.19413 0.0971,-0.29119 -0.38825,0 0.29119,0.29119 z m -0.97063,0 -2.52364,1.65007 -3.10602,4.07665 1.55301,1.65008 7.18267,-5.33848 -3.10602,-2.03832 z m 61.24683,-6.3091 -0.67944,-0.38826 0,0.58238 0.67944,-0.19412 z m -61.82921,5.14434 0.0971,0.38825 0.67945,0.38826 -0.77651,-0.77651 z m 63.67341,-6.98854 -1.94126,0.97063 1.84419,0.58238 0.0971,-1.55301 z m -1.26182,0 -0.19413,-0.19413 -0.0971,0.19413 0.29119,0 z m 5.92085,-1.55301 -0.77651,-0.29119 -0.19412,0.58238 0.97063,-0.29119 z m -4.17372,0.67944 -0.67944,-0.0971 0,0.19413 0.67944,-0.0971 z m 2.13539,-0.77651 3.97959,5.82379 -1.06769,-5.33847 -2.9119,-0.48532 z m -64.06166,6.30911 -2.32951,1.74713 1.06769,1.16476 3.10602,-2.32952 -1.8442,-0.58237 z m -26.40117,-3.6884 -0.0971,-0.0971 0,0.0971 0.0971,0 z m -1.06769,-0.48532 -0.0971,-0.48531 0,0.19412 0.0971,0.29119 z m 29.79838,1.26182 -0.19413,0.0971 0,0.0971 0.19413,-0.19413 z m -0.97063,-0.19412 -0.0971,0 -0.19412,0.29119 0.29119,-0.29119 z m 2.32951,-0.77651 -0.29119,-0.19413 0,0.0971 0.29119,0.0971 z m 0.77651,-0.0971 -0.29119,-0.19413 0,0.0971 0.29119,0.0971 z m -1.26182,-0.29119 -0.38826,0 0,0.0971 0.38826,-0.0971 z m 19.31556,-1.94126 0.0971,-0.29119 -0.19413,0.19412 0.0971,0.0971 z m 5.92085,-3.10602 1.16475,-1.45595 -0.38825,0.29119 -0.7765,1.16476 z m -11.8417,-0.19413 0.38825,-0.29119 0.0971,-0.38825 -0.48531,0.67944 z m 0,-1.06769 -0.38826,0.29118 0.67945,-0.19412 -0.29119,-0.0971 z m -15.91836,0 -0.0971,-0.38826 -0.0971,0 0.19412,0.38826 z m 15.5301,-0.0971 -0.38825,0.38825 -0.19412,0.38826 0.58237,-0.77651 z m 10.67695,-1.16476 0.0971,0 0.0971,0 -0.19412,0 z m 0.48531,0 -0.19412,-0.0971 0,0.0971 0.19412,0 z m -1.16475,-0.0971 0.0971,0.0971 0,-0.0971 -0.0971,0 z m -7.95918,0.58238 0.38825,-0.38825 -0.48531,0.38825 0.0971,0 z m 5.92085,-1.16476 0,0 0,0 0,0 z m -4.75609,0.29119 -2.32952,3.78546 3.00896,-3.49427 -0.67944,-0.29119 z m -3.00896,0.48532 -0.29119,-0.38825 -0.0971,0.19412 0.38825,0.19413 z m 7.3768,-0.87357 -0.19413,-0.0971 0.0971,0.0971 0.0971,0 z m 2.52364,0.19413 0,-0.67945 -0.19413,0.29119 0.19413,0.38826 z m -71.24433,-7.47386 -4.65903,-0.19413 3.20308,3.39721 1.45595,-3.20308 z m 66.29411,6.89148 0.19413,0.67944 0.48531,-0.77651 -0.67944,0.0971 z m -3.88253,-0.0971 -0.29119,2.13539 0.48532,-1.35888 -0.19413,-0.77651 z m -84.25078,-16.11247 0.0971,-0.38826 0,0 -0.0971,0.38826 z m 83.28015,14.75359 0.0971,0.29119 0.19412,-0.0971 -0.29119,-0.19413 z m -0.48531,0.38825 -0.19413,-0.58238 -0.29119,0.19413 0.48532,0.38825 z m 4.56196,-1.16475 0,-0.38826 -0.29119,0.19413 0.29119,0.19413 z m -4.36784,-0.58238 0,0.97063 0.29119,-0.67944 -0.29119,-0.29119 z m -7.37679,-1.16476 0,-0.29119 0,0 0,0.29119 z m -50.66695,-12.03583 0.19412,-0.58238 -0.0971,0.0971 -0.0971,0.48531 z m 0.29119,-0.97063 -0.0971,-0.0971 -0.0971,0.0971 0.19413,0 z m 4.27077,-2.32951 0,-0.0971 0,0 0,0.0971 z m 0,-0.38826 -0.0971,-0.19412 0,0 0.0971,0.19412 z m 1.74714,-2.52364 0,0 -0.0971,0 0.0971,0 z m 0.58238,0.19413 -0.38825,-0.19413 0,0.0971 0.38825,0.0971 z m -0.58238,-0.38825 0,-0.19413 -0.19413,0.19413 0.19413,0 z m -15.5301,-4.56197 -0.19412,-0.48532 -0.0971,-0.29118 0.29119,0.7765 z m 1.45595,-1.74714 0.0971,0 0.0971,0.0971 -0.19412,-0.0971 z m -2.62071,-0.48531 -0.7765,-0.97063 0.58238,0.7765 0.19412,0.19413 z m -1.55301,-1.55301 -0.19412,0 0.29119,0.0971 -0.0971,-0.0971 z m 0.19413,-1.0677 0,0 0,0 0,0 z m -0.19413,-0.0971 0,0 0.19413,0.0971 -0.19413,-0.0971 z m 25.72173,7.66799 -1.06769,0.0971 0.58238,0.29119 0.48531,-0.38825 z m -26.78942,-9.41513 -0.77651,2.9119 2.42658,0.38825 3.20309,3.30015 1.94126,-0.87357 -6.79442,-5.72673 z m 16.98605,1.16476 0,-0.19412 0,0.0971 0,0.0971 z m -4.85316,-10.28869 -0.19413,-0.0971 0.0971,0.0971 0.0971,0 z m 2.81483,0.97063 0.29119,-0.0971 -0.0971,0 -0.19413,0.0971 z m 1.94126,-0.58238 0.29119,0 0.87357,-0.38825 -1.16476,0.38825 z m 3.49428,-1.06769 0.19412,-0.19413 -0.29119,0.19413 0.0971,0 z m 0.48531,-0.0971 0.58238,-0.29119 -0.48532,0.0971 -0.0971,0.19413 z m 1.45595,-0.58238 -0.48532,0.0971 0,0.0971 0.48532,-0.19412 z m 0.58238,-0.0971 0,0 0,0 0,0 z m 61.73214,-17.47136 -0.38825,-0.29119 -0.67944,-0.29119 1.06769,0.58238 z m -50.86107,-2.13539 0.87356,-1.16475 -0.48531,0.38825 -0.38825,0.7765 z m 1.16475,-1.35888 0.38826,-0.58238 -0.19413,0.19413 -0.19413,0.38825 z m 0.58238,-0.7765 0.67944,-0.58238 -0.38825,0.19412 -0.29119,0.38826 z m 30.57488,0.19412 0.48532,0.48532 0.29119,0 -0.77651,-0.48532 z m -15.62716,-6.40616 -3.97959,3.30014 -2.42657,-0.67944 -5.62966,3.20308 -1.0677,-0.67944 -6.40616,7.18267 -6.50323,1.45595 0.58237,3.49427 2.9119,3.97959 5.43553,5.24141 -0.87356,2.03832 4.07665,1.74714 -2.13539,0.38825 -2.62071,-2.03832 1.35889,3.00895 -1.74714,1.0677 -5.5326,-5.04728 -4.36784,0.7765 -7.47386,2.81483 3.39721,3.78546 -0.48531,2.32952 2.23245,2.71776 7.37679,2.9119 5.33848,-2.71777 0.87356,2.03833 -1.45594,6.11497 -4.46491,0 -5.2414,2.32952 -0.29119,-1.65008 -2.71777,1.0677 -1.26182,2.81483 -4.46491,3.39721 0,4.95022 1.74714,0.7765 -1.35888,4.17372 5.82378,5.04728 3.6884,-1.55301 -0.7765,6.21204 1.06769,1.35888 4.46491,0.97063 1.65007,1.8442 3.88252,0.29119 1.8442,1.94127 3.97959,-1.16476 -1.8442,2.52364 -1.45595,5.14434 -11.8417,7.66799 -1.55301,1.55301 -2.23245,-0.87357 -3.59133,0.87357 -5.14435,3.39721 8.05624,-2.32952 1.16476,1.74714 10.38575,-3.39721 0.29119,1.35889 4.07665,-4.07666 8.54156,-5.92085 0.67944,0.38826 7.47386,-5.92085 -1.94126,-2.32952 2.52364,-4.17371 6.60029,-7.86212 5.04728,-0.97063 1.55301,1.0677 -6.11497,1.74713 -1.65008,6.50323 0.19413,3.49428 2.13539,-0.19413 10.28869,-6.21204 0.7765,-2.32952 -0.87356,-3.59133 3.10601,0.7765 2.23246,-1.45594 6.40616,3.88252 -0.48531,1.0677 14.55946,1.8442 3.39721,-1.0677 0.97064,1.45595 12.6182,6.01791 2.13539,-1.26182 0.19413,-7.27973 1.65007,3.30014 8.1533,5.92085 0.67944,2.42658 7.08561,3.97959 1.8442,5.14434 1.74714,-3.97958 3.59133,6.98854 2.42658,-3.97959 -1.94126,-4.95022 -7.47386,-0.7765 -11.45345,-10.96813 -6.21204,-4.56197 -4.75609,4.65903 -2.81483,0 -6.50323,-4.27078 -6.40617,-0.29119 -9.12393,-57.55843 -1.55301,-2.71776 -3.6884,-2.23246 -5.5326,1.0677 -4.27078,-0.87357 -5.43553,-2.13539 -5.72673,0.38825 -1.45594,-2.71776 -4.56197,-0.67945 -0.7765,-1.65007 -2.03833,2.32952 -0.58238,-4.36784 z",
 };
+const CLIENT_LOGOS = [
+  {name:"Brevard Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/brevard-property-experts-and-management.png"},
+  {name:"Spartan Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/spartan-property-management.png"},
+  {name:"Austin Highland Development",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/austin-highland-development-company.png"},
+  {name:"Newbury",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/newbury.png"},
+  {name:"Paradise Properties",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/paradise-properties.png"},
+  {name:"Action Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/action-property-management.png"},
+  {name:"Western Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/western-property-management.png"},
+  {name:"Compass Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/compass-property-management.png"},
+  {name:"Nova Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/nova-property-management.png"},
+  {name:"Emerald Coast Rental",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/emerald-coast-rental-management.png"},
+  {name:"Coastal Shores Property",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/coastal-shores-property-management.png"},
+  {name:"PDC Real Estate",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/pdc-real-estate-development-management.png"},
+  {name:"Meridian Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/meridian-property-management.png"},
+  {name:"Bluefin Property Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/bluefin-property-management.png"},
+  {name:"Real Estate Direct",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/real-estate-direct.png"},
+  {name:"Metropolitan Management",src:"https://raw.githubusercontent.com/NoahAlbers/acb-form/main/metropolitan-management-group.png"},
+];
+
 const DEBT_TYPES = ["Residential Rental Debt","Commercial Rental Debt","Medical Debt","Utility Debt","Student Loan Debt","Credit Card Debt","Auto Loan Debt","Other"];
 const LISTING_SITES = ["Zillow","Apartments.com","Realtor.com","Rent.com","Trulia","HotPads","Own Website","Facebook Marketplace","Craigslist","Other"];
 const PM_SOFTWARE = ["Buildium","AppFolio","Rent Manager","Yardi","DoorLoop","TurboTenant","TenantCloud","Rentec Direct","Zillow Rental Manager","RentRedi","PropertyWare","Entrada","Other"];
 const RENTAL_TYPES = ["Luxury","Affordable / Section 8","Conventional","Student Housing","Senior Living","Other"];
 const PROPERTY_TYPES = ["Single Family Homes","Multi-Family","Communities / HOA","Townhomes","Condos","Mixed-Use","Other"];
 
-const T = {blue:"#3D5AF1",blueDark:"#2D45C6",blueLight:"#EEF1FE",blueMid:"#D5DBFC",bg:"#F4F5F9",card:"#FFFFFF",text:"#1A1A2E",textMid:"#4A4A68",textLight:"#8889A0",border:"#E2E4EC",warn:"#E8A83E",warnBg:"#FEF9EE"};
+const T = {blue:"#3D5AF1",blueDark:"#2D45C6",blueLight:"#EEF1FE",blueMid:"#D5DBFC",bg:"#F4F5F9",card:"#FFFFFF",text:"#1A1A2E",textMid:"#4A4A68",textLight:"#8889A0",border:"#E2E4EC",warn:"#E8A83E",warnBg:"#FEF9EE",green:"#16a34a"};
 const FONT = "'Outfit', sans-serif";
 
+/* ── Sell Step Icons ── */
+function SellIcon({children}){
+  return <div style={{width:48,height:48,borderRadius:14,background:T.blueLight,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{children}</div>;
+}
+const ICONS = {
+  quote: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 17h3l2-4V7H5v6h3l-2 4zm8 0h3l2-4V7h-6v6h3l-2 4z" fill={T.blue}/></svg></SellIcon>,
+  shield: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z" fill={T.blue} opacity="0.2"/><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z" stroke={T.blue} strokeWidth="1.5" fill="none"/><path d="M9 12l2 2 4-4" stroke={T.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></SellIcon>,
+  search: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke={T.blue} strokeWidth="2"/><path d="M16.5 16.5L20 20" stroke={T.blue} strokeWidth="2" strokeLinecap="round"/><path d="M11 8a3 3 0 00-3 3" stroke={T.blue} strokeWidth="1.5" strokeLinecap="round"/></svg></SellIcon>,
+  trendUp: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke={T.blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M17 7h4v4" stroke={T.blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></SellIcon>,
+  people: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="8" r="3" stroke={T.blue} strokeWidth="1.8"/><circle cx="16" cy="8" r="3" stroke={T.blue} strokeWidth="1.8"/><path d="M2 20c0-3.31 2.69-6 6-6 1.2 0 2.31.35 3.24.96" stroke={T.blue} strokeWidth="1.8" strokeLinecap="round"/><path d="M22 20c0-3.31-2.69-6-6-6-1.2 0-2.31.35-3.24.96" stroke={T.blue} strokeWidth="1.8" strokeLinecap="round"/></svg></SellIcon>,
+  mapPin: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" stroke={T.blue} strokeWidth="1.8" fill={T.blue} fillOpacity="0.15"/><circle cx="12" cy="9" r="2.5" stroke={T.blue} strokeWidth="1.8"/></svg></SellIcon>,
+  chart: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke={T.blue} strokeWidth="1.8"/><path d="M7 14l3-3 2.5 2.5L17 9" stroke={T.blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></SellIcon>,
+  sliders: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><line x1="4" y1="8" x2="20" y2="8" stroke={T.blue} strokeWidth="1.8" strokeLinecap="round"/><line x1="4" y1="16" x2="20" y2="16" stroke={T.blue} strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="8" r="2.5" fill={T.blueLight} stroke={T.blue} strokeWidth="1.8"/><circle cx="15" cy="16" r="2.5" fill={T.blueLight} stroke={T.blue} strokeWidth="1.8"/></svg></SellIcon>,
+  phone: <SellIcon><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.68 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.32 1.85.55 2.81.68A2 2 0 0122 16.92z" stroke={T.blue} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg></SellIcon>,
+};
+
 function formatPhone(val) {
-  const digits = val.replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return digits.slice(0,3) + "-" + digits.slice(3);
-  return digits.slice(0,3) + "-" + digits.slice(3,6) + "-" + digits.slice(6);
+  const d = val.replace(/\D/g,"").slice(0,10);
+  if(d.length<=3) return d;
+  if(d.length<=6) return d.slice(0,3)+"-"+d.slice(3);
+  return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);
 }
 
-// Non-linear rent slider: $500-$5000 by 100s, $5000-$10000 by 500s, $10000-$100000 by 5000s
-const RENT_TICKS = (() => {
-  const t = [];
-  for (let v=500; v<2000; v+=50) t.push(v);
-  for (let v=2000; v<5000; v+=250) t.push(v);
-  for (let v=5000; v<10000; v+=1000) t.push(v);
-  for (let v=10000; v<=100000; v+=5000) t.push(v);
-  return t;
-})();
-function rentSliderToValue(pos) { return RENT_TICKS[Math.min(pos, RENT_TICKS.length-1)]; }
-function rentValueToSlider(val) { let closest=0; RENT_TICKS.forEach((t,i)=>{if(Math.abs(t-val)<Math.abs(RENT_TICKS[closest]-val))closest=i;}); return closest; }
-function formatRent(val) { return val >= 100000 ? "$100,000+" : "$" + val.toLocaleString(); }
+const RENT_TICKS = (()=>{ const t=[]; for(let v=500;v<2000;v+=50)t.push(v); for(let v=2000;v<5000;v+=250)t.push(v); for(let v=5000;v<10000;v+=1000)t.push(v); for(let v=10000;v<=100000;v+=5000)t.push(v); return t; })();
+function rentSliderToValue(pos){return RENT_TICKS[Math.min(pos,RENT_TICKS.length-1)];}
+function rentValueToSlider(val){let c=0;RENT_TICKS.forEach((t,i)=>{if(Math.abs(t-val)<Math.abs(RENT_TICKS[c]-val))c=i;});return c;}
+function formatRent(val){return val>=100000?"$100,000+":"$"+val.toLocaleString();}
 
-function RevealText({ text, delay = 0, onComplete, className = "" }) {
-  const [v, setV] = useState(false);
-  const fired = useRef(false);
-  useEffect(() => { const t = setTimeout(() => setV(true), delay); return () => clearTimeout(t); }, [delay]);
-  useEffect(() => { if (v && onComplete && !fired.current) { fired.current = true; const t = setTimeout(onComplete, 300); return () => clearTimeout(t); } }, [v, onComplete]);
-  return <p className={className} style={{ opacity: v?1:0, transform: v?"translateY(0)":"translateY(10px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>{text}</p>;
+/* ── UI Components ── */
+function RevealText({text,delay=0,onComplete,className="",slow=false}){
+  const [v,setV]=useState(false); const fired=useRef(false);
+  const d = slow ? delay + 200 : delay;
+  useEffect(()=>{const t=setTimeout(()=>setV(true),d);return()=>clearTimeout(t);},[d]);
+  useEffect(()=>{if(v&&onComplete&&!fired.current){fired.current=true;const t=setTimeout(onComplete,slow?600:300);return()=>clearTimeout(t);}},[v,onComplete]);
+  return <p className={className} style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(10px)",transition:`opacity ${slow?0.8:0.5}s ease, transform ${slow?0.8:0.5}s ease`}}>{text}</p>;
 }
-function FadeIn({ children, delay = 0 }) {
-  const [v, setV] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setV(true), delay); return () => clearTimeout(t); }, [delay]);
-  return <div style={{ opacity: v?1:0, transform: v?"translateY(0)":"translateY(12px)", transition: "opacity 0.45s ease, transform 0.45s ease" }}>{children}</div>;
+function FadeIn({children,delay=0,slow=false}){
+  const [v,setV]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setV(true),slow?delay+200:delay);return()=>clearTimeout(t);},[delay,slow]);
+  return <div style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(12px)",transition:`opacity ${slow?0.7:0.45}s ease, transform ${slow?0.7:0.45}s ease`}}>{children}</div>;
 }
-function ContinueButton({ onClick, label = "Continue", delay = 0, disabled = false }) {
-  return <FadeIn delay={delay}><button onClick={onClick} disabled={disabled} className="continue-btn" style={{ marginTop:28, padding:"15px 52px", background:disabled?T.border:T.blue, color:disabled?T.textLight:"#fff", border:"none", borderRadius:50, fontSize:16, fontFamily:FONT, fontWeight:600, cursor:disabled?"not-allowed":"pointer", transition:"all 0.3s ease", boxShadow:disabled?"none":`0 4px 18px ${T.blue}44` }}>{label}</button></FadeIn>;
+function ContinueButton({onClick,label="Continue",delay=0,disabled=false}){
+  return <FadeIn delay={delay}><button onClick={onClick} disabled={disabled} className="continue-btn" style={{marginTop:28,padding:"15px 52px",background:disabled?T.border:T.blue,color:disabled?T.textLight:"#fff",border:"none",borderRadius:50,fontSize:16,fontFamily:FONT,fontWeight:600,cursor:disabled?"not-allowed":"pointer",transition:"all 0.3s ease",boxShadow:disabled?"none":`0 4px 18px ${T.blue}44`}}>{label}</button></FadeIn>;
 }
-function TextInput({ value, onChange, placeholder, delay = 0, type = "text", autoFocus = false }) {
-  return <FadeIn delay={delay}><input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
-    style={{ width:"100%", padding:"15px 20px", background:"#fff", border:`1.5px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:16, fontFamily:FONT, outline:"none", transition:"border-color 0.3s, box-shadow 0.3s", boxSizing:"border-box", marginTop:14 }}
-    onFocus={e => { e.target.style.borderColor=T.blue; e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`; }}
-    onBlur={e => { e.target.style.borderColor=T.border; e.target.style.boxShadow="none"; }}
+function TextInput({value,onChange,placeholder,delay=0,type="text",autoFocus=false}){
+  return <FadeIn delay={delay}><input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus}
+    style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}}
+    onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}}
+    onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}
   /></FadeIn>;
 }
-function TextArea({ value, onChange, placeholder, delay = 0 }) {
-  return <FadeIn delay={delay}><textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={4}
-    style={{ width:"100%", padding:"15px 20px", background:"#fff", border:`1.5px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:16, fontFamily:FONT, outline:"none", transition:"border-color 0.3s, box-shadow 0.3s", boxSizing:"border-box", marginTop:14, resize:"vertical", lineHeight:1.5 }}
-    onFocus={e => { e.target.style.borderColor=T.blue; e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`; }}
-    onBlur={e => { e.target.style.borderColor=T.border; e.target.style.boxShadow="none"; }}
+function TextArea({value,onChange,placeholder,delay=0}){
+  return <FadeIn delay={delay}><textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={4}
+    style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14,resize:"vertical",lineHeight:1.5}}
+    onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}}
+    onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}
   /></FadeIn>;
 }
-function Checkbox({ checked, onChange, label, delay = 0, small = false }) {
+function Checkbox({checked,onChange,label,delay=0,small=false}){
   return <FadeIn delay={delay}><div role="checkbox" aria-checked={checked} tabIndex={0}
-    onClick={e => { e.preventDefault(); e.stopPropagation(); onChange(!checked); }}
-    onKeyDown={e => { if(e.key===" "||e.key==="Enter"){e.preventDefault();onChange(!checked);} }}
-    style={{ display:"flex", alignItems:"flex-start", gap:14, cursor:"pointer", marginTop:12, padding:"16px 20px", background:checked?T.blueLight:"#fff", border:checked?`1.5px solid ${T.blue}88`:`1.5px solid ${T.border}`, borderRadius:12, transition:"all 0.25s ease", userSelect:"none" }}>
-    <div style={{ width:22, height:22, minWidth:22, borderRadius:6, border:checked?`2px solid ${T.blue}`:`2px solid ${T.border}`, background:checked?T.blue:"#fff", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s ease", marginTop:1, flexShrink:0 }}>
-      {checked && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    onClick={e=>{e.preventDefault();e.stopPropagation();onChange(!checked);}}
+    onKeyDown={e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();onChange(!checked);}}}
+    style={{display:"flex",alignItems:"flex-start",gap:14,cursor:"pointer",marginTop:12,padding:"16px 20px",background:checked?T.blueLight:"#fff",border:checked?`1.5px solid ${T.blue}88`:`1.5px solid ${T.border}`,borderRadius:12,transition:"all 0.25s ease",userSelect:"none"}}>
+    <div style={{width:22,height:22,minWidth:22,borderRadius:6,border:checked?`2px solid ${T.blue}`:`2px solid ${T.border}`,background:checked?T.blue:"#fff",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s ease",marginTop:1,flexShrink:0}}>
+      {checked&&<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
     </div>
-    <span style={{ color:small?T.textLight:T.textMid, fontSize:small?14:15, lineHeight:1.55, fontFamily:FONT }}>{label}</span>
+    <span style={{color:small?T.textLight:T.textMid,fontSize:small?14:15,lineHeight:1.55,fontFamily:FONT}}>{label}</span>
   </div></FadeIn>;
 }
-function MultiSelect({ options, selected, onToggle, delay = 0 }) {
-  return <FadeIn delay={delay}><div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:14 }}>
-    {options.map(opt => { const a=selected.includes(opt); return <button key={opt} onClick={()=>onToggle(opt)} style={{ padding:"10px 20px", borderRadius:50, border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`, background:a?T.blueLight:"#fff", color:a?T.blue:T.textMid, fontSize:14, fontFamily:FONT, fontWeight:a?600:400, cursor:"pointer", transition:"all 0.2s ease" }}>{a && "✓ "}{opt}</button>; })}
+function MultiSelect({options,selected,onToggle,delay=0}){
+  return <FadeIn delay={delay}><div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:14}}>
+    {options.map(opt=>{const a=selected.includes(opt);return <button key={opt} onClick={()=>onToggle(opt)} style={{padding:"10px 20px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:14,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{a&&"✓ "}{opt}</button>;})}
   </div></FadeIn>;
 }
-function ProgressBar({ progress }) {
-  return <div style={{ position:"fixed", top:0, left:0, right:0, height:4, zIndex:100, background:T.border }}><div style={{ height:"100%", width:`${progress}%`, background:`linear-gradient(90deg, ${T.blue}, ${T.blueDark})`, transition:"width 0.6s cubic-bezier(0.22, 1, 0.36, 1)", borderRadius:"0 2px 2px 0" }} /></div>;
+function ProgressBar({progress}){
+  return <div style={{position:"fixed",top:0,left:0,right:0,height:4,zIndex:100,background:T.border}}><div style={{height:"100%",width:`${progress}%`,background:`linear-gradient(90deg, ${T.blue}, ${T.blueDark})`,transition:"width 0.6s cubic-bezier(0.22, 1, 0.36, 1)",borderRadius:"0 2px 2px 0"}}/></div>;
 }
 
-function StateSearchInput({ selected, onToggle }) {
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
-  const allNames = Object.values(STATE_NAMES).filter(n => n !== "Washington DC");
-  const matches = query.trim() ? allNames.filter(n => n.toLowerCase().startsWith(query.toLowerCase()) && !selected.includes(n)).slice(0,5) : [];
-  return (
-    <div style={{ position:"relative", marginTop:12 }}>
-      <input type="text" value={query} onChange={e=>setQuery(e.target.value)} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),200)}
-        placeholder="Type a state name to add it..."
-        style={{ width:"100%", padding:"12px 18px", background:"#fff", border:`1.5px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:14, fontFamily:FONT, outline:"none", boxSizing:"border-box" }}
-        onKeyDown={e => { if(e.key==="Enter" && matches.length>0){ e.preventDefault(); e.stopPropagation(); onToggle(matches[0]); setQuery(""); } }}
-      />
-      {focused && matches.length > 0 && (
-        <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:`1px solid ${T.border}`, borderRadius:10, marginTop:4, boxShadow:"0 4px 16px rgba(0,0,0,0.08)", zIndex:10, overflow:"hidden" }}>
-          {matches.map(name => (
-            <div key={name} onMouseDown={()=>{ onToggle(name); setQuery(""); }}
-              style={{ padding:"10px 18px", cursor:"pointer", fontSize:14, fontFamily:FONT, color:T.textMid, borderBottom:`1px solid ${T.border}22` }}
-              onMouseEnter={e=>e.target.style.background=T.blueLight}
-              onMouseLeave={e=>e.target.style.background="#fff"}>
-              {name}
-            </div>
-          ))}
-        </div>
-      )}
+/* ── Testimonial Card ── */
+function TestimonialCard({quote,name,title,company,delay=0,slow=true}){
+  return <FadeIn delay={delay} slow={slow}><div style={{marginTop:20,padding:"24px 28px",background:"#fff",borderLeft:`4px solid ${T.blue}`,borderRadius:"4px 12px 12px 4px",boxShadow:"0 2px 12px rgba(0,0,0,0.04)"}}>
+    <p style={{color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.65,fontStyle:"italic",margin:0}}>"{quote}"</p>
+    <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:36,height:36,borderRadius:50,background:T.blueLight,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><span style={{fontSize:14,fontWeight:700,color:T.blue}}>{name.charAt(0)}</span></div>
+      <div><p style={{fontSize:13,fontWeight:600,color:T.text,fontFamily:FONT,margin:0}}>{name}</p><p style={{fontSize:12,color:T.textLight,fontFamily:FONT,margin:0}}>{title}{company ? `, ${company}` : ""}</p></div>
     </div>
-  );
+  </div></FadeIn>;
 }
 
-function USStateMap({ selected, onToggle }) {
-  const [hovered, setHovered] = useState(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({x:0,y:0});
-  const [dragging, setDragging] = useState(false);
-  const [didDrag, setDidDrag] = useState(false);
-  const dragStart = useRef(null);
-  const dragOrigin = useRef(null);
-  const mapRef = useRef(null);
-  const lastTouchDist = useRef(null);
-
-  // Desktop scroll zoom (mouse-position based)
-  const handleWheel = useCallback((e) => {
-    e.preventDefault(); e.stopPropagation();
-    const el = mapRef.current; if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const frac = e.deltaY > 0 ? -0.15 : 0.15;
-    setZoom(prevZ => {
-      const newZ = Math.min(4, Math.max(0.8, prevZ + frac));
-      const scale = newZ / prevZ;
-      setPan(prevPan => ({ x: mx - scale * (mx - prevPan.x), y: my - scale * (my - prevPan.y) }));
-      return newZ;
-    });
-  }, []);
-
-  useEffect(() => {
-    const el = mapRef.current; if (!el) return;
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
-
-  // Mouse drag
-  const handleMouseDown = (e) => { setDragging(true); setDidDrag(false); dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }; dragOrigin.current = { x: e.clientX, y: e.clientY }; };
-  const handleMouseMove = (e) => { if (!dragging || !dragStart.current) return; const dx = e.clientX - dragOrigin.current.x; const dy = e.clientY - dragOrigin.current.y; if (Math.abs(dx) > 4 || Math.abs(dy) > 4) setDidDrag(true); setPan({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y }); };
-  const handleMouseUp = () => { setDragging(false); };
-
-  // Touch: 1 finger = pan, 2 fingers = zoom
-  const handleTouchStart = (e) => {
-    if (e.touches.length === 1) {
-      setDragging(true); setDidDrag(false);
-      dragStart.current = { x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y };
-      dragOrigin.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    } else if (e.touches.length === 2) {
-      e.preventDefault();
-      lastTouchDist.current = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    }
-  };
-  const handleTouchMove = (e) => {
-    if (e.touches.length === 1 && dragging && dragStart.current) {
-      const dx = e.touches[0].clientX - dragOrigin.current.x;
-      const dy = e.touches[0].clientY - dragOrigin.current.y;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) setDidDrag(true);
-      setPan({ x: e.touches[0].clientX - dragStart.current.x, y: e.touches[0].clientY - dragStart.current.y });
-      e.preventDefault();
-    } else if (e.touches.length === 2 && lastTouchDist.current) {
-      e.preventDefault();
-      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      const scale = dist / lastTouchDist.current;
-      setZoom(z => Math.min(4, Math.max(0.8, z * scale)));
-      lastTouchDist.current = dist;
-    }
-  };
-  const handleTouchEnd = (e) => { setDragging(false); if (e.touches.length < 2) lastTouchDist.current = null; };
-
-  // Touch event registration with passive:false
-  useEffect(() => {
-    const el = mapRef.current; if (!el) return;
-    const opts = { passive: false };
-    el.addEventListener("touchstart", handleTouchStart, opts);
-    el.addEventListener("touchmove", handleTouchMove, opts);
-    el.addEventListener("touchend", handleTouchEnd);
-    return () => { el.removeEventListener("touchstart", handleTouchStart); el.removeEventListener("touchmove", handleTouchMove); el.removeEventListener("touchend", handleTouchEnd); };
-  });
-
-  const handleToggle = (name, bulkSet) => { if(bulkSet!==undefined) onToggle(null, bulkSet); else onToggle(name); };
-  const handleStateClick = (e, name) => { e.stopPropagation(); if (!didDrag) handleToggle(name); };
-  const zoomIn = () => setZoom(z => Math.min(4, z + 0.4));
-  const zoomOut = () => setZoom(z => Math.max(0.8, z - 0.4));
-
-  return (
-    <div style={{ position:"relative", marginTop:16 }}>
-      <StateSearchInput selected={selected} onToggle={(name)=>handleToggle(name)} />
-      <div ref={mapRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
-        style={{ overflow:"hidden", borderRadius:14, border:`1px solid ${T.border}`, background:"#FAFBFD", cursor:dragging?"grabbing":"default", position:"relative", marginTop:10, touchAction:"none" }}>
-        <svg viewBox="0 0 1000 589" style={{ width:"100%", height:"auto", maxHeight:420, display:"block", transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin:"0 0", transition:dragging?"none":"transform 0.15s ease" }}>
-          {Object.entries(SVG_PATHS).map(([code, d]) => {
-            const name = STATE_NAMES[code] || code;
-            const isSel = selected.includes(name);
-            const isHov = hovered === code;
-            return <path key={code} d={d} fill={isSel ? T.blue : isHov ? T.blueMid : "#E8EAF0"} stroke={isSel ? T.blueDark : "#fff"} strokeWidth={isSel ? 2 : 1}
-              onClick={(e) => handleStateClick(e, name)}
-              onMouseEnter={() => setHovered(code)} onMouseLeave={() => setHovered(null)}
-              style={{ cursor:dragging?"grabbing":"pointer", transition:"fill 0.15s ease" }}><title>{name}</title></path>;
-          })}
-        </svg>
-        {hovered && <div style={{ position:"absolute", top:10, left:10, padding:"6px 14px", background:"#fff", borderRadius:8, boxShadow:"0 2px 8px rgba(0,0,0,0.1)", fontSize:13, fontFamily:FONT, fontWeight:600, color:T.text, pointerEvents:"none" }}>{STATE_NAMES[hovered]||hovered}</div>}
-        <div style={{ position:"absolute", bottom:10, right:10, display:"flex", flexDirection:"column", gap:4 }}>
-          <button onClick={zoomIn} style={{ width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, background:"#fff", color:T.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>+</button>
-          <button onClick={zoomOut} style={{ width:32, height:32, borderRadius:8, border:`1px solid ${T.border}`, background:"#fff", color:T.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 1px 4px rgba(0,0,0,0.1)" }}>-</button>
-        </div>
-      </div>
-      <p style={{ color:T.textLight, fontSize:11, fontFamily:FONT, marginTop:6 }}>Click states or type to search. Scroll/pinch to zoom, drag to pan.</p>
-      {selected.length > 0 && <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:10 }}>
-        {selected.map(name => <span key={name} onClick={()=>handleToggle(name)} style={{ padding:"5px 14px", borderRadius:50, background:T.blueLight, border:`1px solid ${T.blue}44`, color:T.blue, fontSize:12, fontFamily:FONT, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>{name} ×</span>)}
-      </div>}
-      <div style={{ display:"flex", gap:8, marginTop:10 }}>
-        <button onClick={()=>handleToggle(null, Object.values(STATE_NAMES))} style={{ padding:"6px 14px", borderRadius:50, border:`1px solid ${T.border}`, background:"#fff", color:T.textLight, fontSize:12, fontFamily:FONT, cursor:"pointer" }}>Select All</button>
-        <button onClick={()=>handleToggle(null, [])} style={{ padding:"6px 14px", borderRadius:50, border:`1px solid ${T.border}`, background:"#fff", color:T.textLight, fontSize:12, fontFamily:FONT, cursor:"pointer" }}>Clear All</button>
-      </div>
-    </div>
-  );
-}
-
-function AutoAdvance({ onAdvance }) { const ran = useRef(false); useEffect(()=>{if(!ran.current){ran.current=true;onAdvance();}},[]); return null; }
-
-function SellSection({ lines, affirmLabel="Sounds great, let's continue", onContinue, markTextDone, textsDone }) {
-  const ids = lines.map((_,i)=>String.fromCharCode(97+i));
-  return <>{lines.map((line,i)=>{ const id=ids[i]; if(i>0&&!textsDone[ids[i-1]]) return null; return <RevealText key={id} text={line.text} delay={i===0?100:150} onComplete={()=>markTextDone(id)} className={line.accent?"accent-text":i===0?"hero-text":"sub-text"} />; })}{textsDone[ids[ids.length-1]] && <ContinueButton onClick={onContinue} label={affirmLabel} delay={250} />}</>;
-}
-
-function Confetti() {
-  const colors = [T.blue,"#FFD700","#FF6B6B","#4ECDC4","#A78BFA","#F97316"];
-  const pieces = Array.from({length:60},(_,i)=>({
-    id:i, color:colors[i%colors.length],
-    left:Math.random()*100, delay:Math.random()*0.8,
-    duration:1.5+Math.random()*2, size:6+Math.random()*8,
-    rotation:Math.random()*360
-  }));
-  return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:200,overflow:"hidden"}}>
-    {pieces.map(p=><div key={p.id} style={{ position:"absolute", top:-20, left:`${p.left}%`, width:p.size, height:p.size*0.6, background:p.color, borderRadius:2, opacity:0.9, animation:`confetti-fall ${p.duration}s ${p.delay}s ease-in forwards`, transform:`rotate(${p.rotation}deg)` }}/>)}
+/* ── Stat Counter ── */
+function StatCounter({value,label,prefix="",suffix="",delay=0}){
+  const [show,setShow]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setShow(true),delay);return()=>clearTimeout(t);},[delay]);
+  return <div style={{textAlign:"center",padding:"20px 0",opacity:show?1:0,transform:show?"scale(1)":"scale(0.85)",transition:"all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"}}>
+    <p style={{fontSize:42,fontWeight:800,color:T.blue,fontFamily:FONT,margin:0,letterSpacing:"-0.02em"}}>{prefix}{value}{suffix}</p>
+    <p style={{fontSize:14,color:T.textLight,fontFamily:FONT,margin:"4px 0 0",fontWeight:500}}>{label}</p>
   </div>;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP FLOW ENGINE
-   Uses a step registry so branching is clean.
-   The form tracks: isResidentialPath (boolean)
-   ═══════════════════════════════════════════════════════════ */
+/* ── Logo Marquee ── */
+function LogoMarquee({delay=0}){
+  return <FadeIn delay={delay}><div style={{marginTop:20,overflow:"hidden",padding:"12px 0",position:"relative"}}>
+    <div style={{display:"flex",gap:32,animation:"logo-scroll 30s linear infinite",width:"max-content"}}>
+      {[...CLIENT_LOGOS,...CLIENT_LOGOS].map((logo,i)=><img key={i} src={logo.src} alt={logo.name} style={{height:28,opacity:0.45,filter:"grayscale(100%)",objectFit:"contain"}} onError={e=>{e.target.style.display="none";}} />)}
+    </div>
+    <div style={{position:"absolute",top:0,left:0,width:40,height:"100%",background:"linear-gradient(90deg, #fff, transparent)",pointerEvents:"none"}}/>
+    <div style={{position:"absolute",top:0,right:0,width:40,height:"100%",background:"linear-gradient(-90deg, #fff, transparent)",pointerEvents:"none"}}/>
+  </div></FadeIn>;
+}
 
-function StepContent({ step, data, setData, goTo, next, back, markTextDone, textsDone }) {
-  const firstName = data.fullName.split(" ")[0] || "";
-  const isRes = data.debtTypes.includes("Residential Rental Debt");
-  const bigPortfolio = parseInt(data.totalUnits || "0") >= 1000;
+/* ── State Search + Map ── */
+function StateSearchInput({selected,onToggle}){
+  const [query,setQuery]=useState(""); const [focused,setFocused]=useState(false);
+  const allNames=Object.values(STATE_NAMES).filter(n=>n!=="Washington DC");
+  const matches=query.trim()?allNames.filter(n=>n.toLowerCase().startsWith(query.toLowerCase())&&!selected.includes(n)).slice(0,5):[];
+  return <div style={{position:"relative",marginTop:12}}>
+    <input type="text" value={query} onChange={e=>setQuery(e.target.value)} onFocus={()=>setFocused(true)} onBlur={()=>setTimeout(()=>setFocused(false),200)}
+      placeholder="Type a state name to add it..." style={{width:"100%",padding:"12px 18px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:14,fontFamily:FONT,outline:"none",boxSizing:"border-box"}}
+      onKeyDown={e=>{if(e.key==="Enter"&&matches.length>0){e.preventDefault();e.stopPropagation();onToggle(matches[0]);setQuery("");}}} />
+    {focused&&matches.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:`1px solid ${T.border}`,borderRadius:10,marginTop:4,boxShadow:"0 4px 16px rgba(0,0,0,0.08)",zIndex:10,overflow:"hidden"}}>
+      {matches.map(name=><div key={name} onMouseDown={()=>{onToggle(name);setQuery("");}} style={{padding:"10px 18px",cursor:"pointer",fontSize:14,fontFamily:FONT,color:T.textMid,borderBottom:`1px solid ${T.border}22`}} onMouseEnter={e=>e.target.style.background=T.blueLight} onMouseLeave={e=>e.target.style.background="#fff"}>{name}</div>)}
+    </div>}
+  </div>;
+}
 
-  switch(step) {
-    // ═══ SHARED STEPS ═══
-    case "intro": return <><RevealText text="We're excited to work with you to get your debt collected." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we'll need some information about you." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <ContinueButton onClick={next} label="Let's Get Started" delay={200} />}</>;
+function USStateMap({selected,onToggle}){
+  const [hovered,setHovered]=useState(null);
+  const [zoom,setZoom]=useState(1); const [pan,setPan]=useState({x:0,y:0});
+  const [dragging,setDragging]=useState(false); const [didDrag,setDidDrag]=useState(false);
+  const dragStart=useRef(null); const dragOrigin=useRef(null); const mapRef=useRef(null); const lastTouchDist=useRef(null);
 
-    case "name": return <><RevealText text="What's your name?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.fullName} onChange={v=>setData(d=>({...d,fullName:v}))} placeholder="First and last name" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.fullName.trim()} /></>}</>;
+  const handleWheel=useCallback((e)=>{e.preventDefault();e.stopPropagation();const el=mapRef.current;if(!el)return;const rect=el.getBoundingClientRect();const mx=e.clientX-rect.left;const my=e.clientY-rect.top;const frac=e.deltaY>0?-0.15:0.15;setZoom(prevZ=>{const newZ=Math.min(4,Math.max(0.8,prevZ+frac));const scale=newZ/prevZ;setPan(prevPan=>({x:mx-scale*(mx-prevPan.x),y:my-scale*(my-prevPan.y)}));return newZ;});},[]);
+  useEffect(()=>{const el=mapRef.current;if(!el)return;el.addEventListener("wheel",handleWheel,{passive:false});return()=>el.removeEventListener("wheel",handleWheel);},[handleWheel]);
 
-    case "company": return <><RevealText text={`Nice to meet you, ${firstName}!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="What company do you work with?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noCompany && <TextInput value={data.companyName} onChange={v=>setData(d=>({...d,companyName:v}))} placeholder="Company name" delay={150} autoFocus />}<Checkbox checked={data.noCompany} onChange={val=>setData(d=>({...d,noCompany:val,companyName:""}))} label="I don't work with a company / I'm an independent owner" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noCompany&&!data.companyName.trim()} /></>}</>;
+  const handleMouseDown=(e)=>{setDragging(true);setDidDrag(false);dragStart.current={x:e.clientX-pan.x,y:e.clientY-pan.y};dragOrigin.current={x:e.clientX,y:e.clientY};};
+  const handleMouseMove=(e)=>{if(!dragging||!dragStart.current)return;const dx=e.clientX-dragOrigin.current.x;const dy=e.clientY-dragOrigin.current.y;if(Math.abs(dx)>4||Math.abs(dy)>4)setDidDrag(true);setPan({x:e.clientX-dragStart.current.x,y:e.clientY-dragStart.current.y});};
+  const handleMouseUp=()=>{setDragging(false);};
 
-    case "website": return <><RevealText text={data.noCompany?"Great! Does your rental business have a website?":`Great to hear ${data.companyName} will get more accounts receivable help!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&!data.noCompany && <RevealText text={`Does ${data.companyName} have a website?`} delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{(textsDone.b||(data.noCompany&&textsDone.a)) && <>{!data.noWebsite && <TextInput value={data.companyWebsite} onChange={v=>setData(d=>({...d,companyWebsite:v}))} placeholder="https://yourcompany.com" delay={150} autoFocus />}<Checkbox checked={data.noWebsite} onChange={val=>setData(d=>({...d,noWebsite:val,companyWebsite:""}))} label="We don't have a website" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noWebsite&&!data.companyWebsite.trim()} /></>}</>;
+  const handleTouchStart=(e)=>{if(e.touches.length===1){setDragging(true);setDidDrag(false);dragStart.current={x:e.touches[0].clientX-pan.x,y:e.touches[0].clientY-pan.y};dragOrigin.current={x:e.touches[0].clientX,y:e.touches[0].clientY};}else if(e.touches.length===2){e.preventDefault();lastTouchDist.current=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}};
+  const handleTouchMove=(e)=>{if(e.touches.length===1&&dragging&&dragStart.current){const dx=e.touches[0].clientX-dragOrigin.current.x;const dy=e.touches[0].clientY-dragOrigin.current.y;if(Math.abs(dx)>4||Math.abs(dy)>4)setDidDrag(true);setPan({x:e.touches[0].clientX-dragStart.current.x,y:e.touches[0].clientY-dragStart.current.y});e.preventDefault();}else if(e.touches.length===2&&lastTouchDist.current){e.preventDefault();const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);setZoom(z=>Math.min(4,Math.max(0.8,z*(dist/lastTouchDist.current))));lastTouchDist.current=dist;}};
+  const handleTouchEnd=(e)=>{setDragging(false);if(e.touches.length<2)lastTouchDist.current=null;};
 
-    case "certify": return <><RevealText text="We'll be collecting your debt in no time!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="But first, we need you to certify the following:" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><Checkbox checked={data.certifyNoDebt} onChange={val=>setData(d=>({...d,certifyNoDebt:val,certifyOwesDebt:val?false:d.certifyOwesDebt}))} label={`I, ${data.fullName||"the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`} delay={200} /><Checkbox checked={data.certifyOwesDebt} onChange={val=>setData(d=>({...d,certifyOwesDebt:val,certifyNoDebt:val?false:d.certifyNoDebt}))} label="I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau." delay={350} small />{data.certifyNoDebt && <ContinueButton onClick={next} delay={150} />}{data.certifyOwesDebt && <FadeIn delay={150}><div style={{marginTop:24,padding:"24px 28px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:16,fontFamily:FONT,margin:0,lineHeight:1.6}}>Please contact our main office directly at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> and we'll be happy to assist you.</p><button onClick={()=>setData(d=>({...d,certifyOwesDebt:false}))} style={{marginTop:16,padding:"10px 24px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,color:T.textMid,fontSize:14,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></div></FadeIn>}</>}</>;
+  useEffect(()=>{const el=mapRef.current;if(!el)return;const opts={passive:false};el.addEventListener("touchstart",handleTouchStart,opts);el.addEventListener("touchmove",handleTouchMove,opts);el.addEventListener("touchend",handleTouchEnd);return()=>{el.removeEventListener("touchstart",handleTouchStart);el.removeEventListener("touchmove",handleTouchMove);el.removeEventListener("touchend",handleTouchEnd);};});
 
-    case "contact": return <><RevealText text="Perfect!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Now for some contact info so we can get in touch." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <><TextInput value={data.email} onChange={v=>setData(d=>({...d,email:v}))} placeholder="Your email address" delay={150} type="email" autoFocus /><FadeIn delay={300}><input type="tel" value={data.phone} onChange={e=>setData(d=>({...d,phone:formatPhone(e.target.value)}))} placeholder="000-000-0000" style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}} onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}} onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}/></FadeIn><FadeIn delay={400}><div style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"14px 18px",background:T.blueLight,borderRadius:10,border:`1px solid ${T.blueMid}`}}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{marginTop:2,flexShrink:0}}><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 11.5a.75.75 0 110-1.5.75.75 0 010 1.5zM10.75 9.5a.75.75 0 01-1.5 0V6.75a.75.75 0 011.5 0V9.5z" fill={T.blue}/></svg><p style={{color:T.textMid,fontSize:13,fontFamily:FONT,lineHeight:1.5,margin:0}}>You won't be added to any automated mailing lists. A real member of our team will reach out to you personally. No spam, we promise.</p></div></FadeIn><ContinueButton onClick={next} delay={500} disabled={!data.email.trim()||data.phone.replace(/\D/g,"").length<10} /></>}</>;
+  const handleToggle=(name,bulkSet)=>{if(bulkSet!==undefined)onToggle(null,bulkSet);else onToggle(name);};
+  const handleStateClick=(e,name)=>{e.stopPropagation();if(!didDrag)handleToggle(name);};
+  const zoomIn=()=>setZoom(z=>Math.min(4,z+0.4));
+  const zoomOut=()=>setZoom(z=>Math.max(0.8,z-0.4));
 
-    case "priorAgency": return <><RevealText text="Have you worked with a debt collection agency before?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes","No"].map(opt=>{const a=data.priorAgency===opt; return <button key={opt} onClick={()=>setData(d=>({...d,priorAgency:opt}))} style={{padding:"12px 36px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.priorAgency==="Yes" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 25 years specializing in residential rental collections, we think you'll notice the difference.</p></FadeIn>}{data.priorAgency==="No" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No worries at all. We'll walk you through the entire process. Over 25 years of experience means we've made it as simple as possible for first-timers.</p></FadeIn>}{data.priorAgency && <ContinueButton onClick={next} delay={200} />}</>}</>;
+  return <div style={{position:"relative",marginTop:16}}>
+    <StateSearchInput selected={selected} onToggle={name=>handleToggle(name)} />
+    <div ref={mapRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+      style={{overflow:"hidden",borderRadius:14,border:`1px solid ${T.border}`,background:"#FAFBFD",cursor:dragging?"grabbing":"default",position:"relative",marginTop:10,touchAction:"none"}}>
+      <svg viewBox="0 0 1000 589" style={{width:"100%",height:"auto",maxHeight:420,display:"block",transform:`translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,transformOrigin:"0 0",transition:dragging?"none":"transform 0.15s ease"}}>
+        {Object.entries(SVG_PATHS).map(([code,d])=>{const name=STATE_NAMES[code]||code;const isSel=selected.includes(name);const isHov=hovered===code;return <path key={code} d={d} fill={isSel?T.blue:isHov?T.blueMid:"#E8EAF0"} stroke={isSel?T.blueDark:"#fff"} strokeWidth={isSel?2:1} onClick={e=>handleStateClick(e,name)} onMouseEnter={()=>setHovered(code)} onMouseLeave={()=>setHovered(null)} style={{cursor:dragging?"grabbing":"pointer",transition:"fill 0.15s ease"}}><title>{name}</title></path>;})}
+      </svg>
+      {hovered&&<div style={{position:"absolute",top:10,left:10,padding:"6px 14px",background:"#fff",borderRadius:8,boxShadow:"0 2px 8px rgba(0,0,0,0.1)",fontSize:13,fontFamily:FONT,fontWeight:600,color:T.text,pointerEvents:"none"}}>{STATE_NAMES[hovered]||hovered}</div>}
+      <div style={{position:"absolute",bottom:10,right:10,display:"flex",flexDirection:"column",gap:4}}>
+        <button onClick={zoomIn} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:"#fff",color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.1)"}}>+</button>
+        <button onClick={zoomOut} style={{width:32,height:32,borderRadius:8,border:`1px solid ${T.border}`,background:"#fff",color:T.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.1)"}}>-</button>
+      </div>
+    </div>
+    <p style={{color:T.textLight,fontSize:11,fontFamily:FONT,marginTop:6}}>Click states or type to search. Scroll/pinch to zoom, drag to pan.</p>
+    {selected.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:10}}>{selected.map(name=><span key={name} onClick={()=>handleToggle(name)} style={{padding:"5px 14px",borderRadius:50,background:T.blueLight,border:`1px solid ${T.blue}44`,color:T.blue,fontSize:12,fontFamily:FONT,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>{name} ×</span>)}</div>}
+    <div style={{display:"flex",gap:8,marginTop:10}}>
+      <button onClick={()=>handleToggle(null,Object.values(STATE_NAMES))} style={{padding:"6px 14px",borderRadius:50,border:`1px solid ${T.border}`,background:"#fff",color:T.textLight,fontSize:12,fontFamily:FONT,cursor:"pointer"}}>Select All</button>
+      <button onClick={()=>handleToggle(null,[])} style={{padding:"6px 14px",borderRadius:50,border:`1px solid ${T.border}`,background:"#fff",color:T.textLight,fontSize:12,fontFamily:FONT,cursor:"pointer"}}>Clear All</button>
+    </div>
+  </div>;
+}
 
-    case "debtTypes": return <><RevealText text="What kind of debts are you looking to get collected?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><MultiSelect options={DEBT_TYPES} selected={data.debtTypes} onToggle={opt=>setData(d=>({...d,debtTypes:d.debtTypes.includes(opt)?d.debtTypes.filter(x=>x!==opt):[...d.debtTypes,opt]}))} delay={200} />{data.debtTypes.includes("Other") && <TextInput value={data.customDebtType||""} onChange={v=>setData(d=>({...d,customDebtType:v}))} placeholder="Describe the type of debt you need collected" delay={100} />}<ContinueButton onClick={next} delay={400} disabled={data.debtTypes.length===0||(data.debtTypes.includes("Other")&&!(data.customDebtType||"").trim())} /></>}</>;
+function AutoAdvance({onAdvance}){const ran=useRef(false);useEffect(()=>{if(!ran.current){ran.current=true;onAdvance();}},[]);return null;}
 
-    case "debtsNow": return <><RevealText text="Do you have debts you're looking to get collected right now?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes, we have accounts ready","Not yet, but soon"].map(opt=>{const a=data.debtsNow===opt; return <button key={opt} onClick={()=>setData(d=>({...d,debtsNow:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.debtsNow==="Yes, we have accounts ready" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement.</p></FadeIn>}{data.debtsNow==="Not yet, but soon" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list.</p></FadeIn>}{data.debtsNow && <ContinueButton onClick={next} delay={200} />}</>}</>;
+function SellSection({lines,affirmLabel="Sounds great, let's continue",onContinue,markTextDone,textsDone,children,icon}){
+  const ids=lines.map((_,i)=>String.fromCharCode(97+i));
+  return <>{icon&&<FadeIn delay={0}><div style={{marginBottom:14}}>{icon}</div></FadeIn>}{lines.map((line,i)=>{const id=ids[i];if(i>0&&!textsDone[ids[i-1]])return null;return <RevealText key={id} text={line.text} delay={i===0?100:300} onComplete={()=>markTextDone(id)} className={line.accent?"accent-text":i===0?"hero-text":"sub-text"} slow={true} />;})}{textsDone[ids[ids.length-1]]&&<>{children}<ContinueButton onClick={onContinue} label={affirmLabel} delay={400} /></>}</>;
+}
 
-    // ═══ NON-RESIDENTIAL BRANCH ═══
-    case "nonResBranch": return <><RevealText text="We specialize in residential rental debt, but we know the collections industry inside and out." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'd love to get in touch and recommend a great agency for your specific debt type. We know the ins and outs of what makes a good agency versus a not-so-good one." delay={150} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <RevealText text="If you think you have enough volume for us to build a dedicated team just for you, we'd be happy to discuss that too." delay={150} onComplete={()=>markTextDone("c")} className="sub-text" />}{textsDone.c && <FadeIn delay={200}><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:24}}><button onClick={()=>goTo("nonResStates")} style={{padding:"15px 32px",borderRadius:50,border:"none",background:T.blue,color:"#fff",fontSize:16,fontFamily:FONT,fontWeight:600,cursor:"pointer",boxShadow:`0 4px 18px ${T.blue}44`}}>Get me a recommendation</button><button onClick={()=>goTo("sellDedicatedTeam")} style={{padding:"15px 32px",borderRadius:50,border:`1.5px solid ${T.border}`,background:"#fff",color:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>I want a dedicated team, let's continue</button></div></FadeIn>}</>;
+function Confetti(){
+  const colors=[T.blue,"#FFD700","#FF6B6B","#4ECDC4","#A78BFA","#F97316"];
+  const pieces=Array.from({length:60},(_,i)=>({id:i,color:colors[i%colors.length],left:Math.random()*100,delay:Math.random()*0.8,duration:1.5+Math.random()*2,size:6+Math.random()*8,rotation:Math.random()*360}));
+  return <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,pointerEvents:"none",zIndex:200,overflow:"hidden"}}>
+    {pieces.map(p=><div key={p.id} style={{position:"absolute",top:-20,left:`${p.left}%`,width:p.size,height:p.size*0.6,background:p.color,borderRadius:2,opacity:0.9,animation:`confetti-fall ${p.duration}s ${p.delay}s ease-in forwards`,transform:`rotate(${p.rotation}deg)`}}/>)}
+  </div>;
+}
 
-    case "sellDedicatedTeam": return <SellSection lines={[{text:"At Advanced Collection Bureau, we train our staff on specific sectors to ensure the highest possible recovery rates."},{text:"For clients with enough volume, we build a team dedicated entirely to your accounts. They learn your business, your tenants, and your expectations inside and out."},{text:"We'd love to be that team for you.", accent:true}]} affirmLabel="Let's make it happen" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+/* ═══ STEP CONTENT ═══ */
+function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone}){
+  const firstName=data.fullName.split(" ")[0]||"";
+  const isRes=data.debtTypes.includes("Residential Rental Debt");
+  const bigPortfolio=parseInt(data.totalUnits||"0")>=1000;
+  const units=parseInt(data.totalUnits||"0");
 
-    case "nonResStates": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={()=>goTo("comments")} delay={350} disabled={data.states.length===0} /></>}</>;
+  switch(step){
+    case "intro": return <><RevealText text="We're excited to work with you to get your debt collected." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" slow />{textsDone.a&&<RevealText text="But first, we'll need some information about you." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" slow />}{textsDone.b&&<ContinueButton onClick={next} label="Let's Get Started" delay={400} />}</>;
 
-    // ═══ RESIDENTIAL PATH ═══
-    case "sellAcbPitch": return <SellSection lines={[{text:"Advanced Collection Bureau is the nation's leading residential rental debt collection agency."},{text:"We train our staff specifically on residential rental collections. We work with thousands of property managers, rental investors, and property portfolios nationally."},{text:"We're happy to be your collection team.", accent:true}]} affirmLabel="That's what I need, let's go" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "name": return <><RevealText text="What's your name?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><TextInput value={data.fullName} onChange={v=>setData(d=>({...d,fullName:v}))} placeholder="First and last name" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.fullName.trim()} /></>}</>;
 
-    case "states": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={next} delay={350} disabled={data.states.length===0} /></>}</>;
+    case "company": return <><RevealText text={`Nice to meet you, ${firstName}!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="What company do you work with?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<>{!data.noCompany&&<TextInput value={data.companyName} onChange={v=>setData(d=>({...d,companyName:v}))} placeholder="Company name" delay={150} autoFocus />}<Checkbox checked={data.noCompany} onChange={val=>setData(d=>({...d,noCompany:val,companyName:""}))} label="I don't work with a company / I'm an independent owner" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noCompany&&!data.companyName.trim()} /></>}</>;
 
-    case "sellContingency": return <SellSection lines={[{text:"We've recovered millions for property managers just like you."},{text:"We work on contingency only. There's no add-ons or upfront cost from you, ever. If we don't collect anything, you don't pay, and we don't get paid."}]} affirmLabel="Love it, keep going" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "website": return <><RevealText text={data.noCompany?"Great! Does your rental business have a website?":`Great to hear ${data.companyName} will get more accounts receivable help!`} delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&!data.noCompany&&<RevealText text={`Does ${data.companyName} have a website?`} delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{(textsDone.b||(data.noCompany&&textsDone.a))&&<>{!data.noWebsite&&<TextInput value={data.companyWebsite} onChange={v=>setData(d=>({...d,companyWebsite:v}))} placeholder="https://yourcompany.com" delay={150} autoFocus />}<Checkbox checked={data.noWebsite} onChange={val=>setData(d=>({...d,noWebsite:val,companyWebsite:""}))} label="We don't have a website" delay={250} /><ContinueButton onClick={next} delay={400} disabled={!data.noWebsite&&!data.companyWebsite.trim()} /></>}</>;
 
-    case "ownership": return <><RevealText text="Do you own the properties you manage, or do you manage on behalf of other owners?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>{["We own them","We manage for others","We own and manage for others"].map(opt=>{const a=data.ownershipType===opt; return <button key={opt} onClick={()=>setData(d=>({...d,ownershipType:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.ownershipType==="We own them" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all.</p></FadeIn>}{data.ownershipType==="We manage for others" && <FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions.</p></FadeIn>}{data.ownershipType==="We own and manage for others" && <FadeIn delay={100}><div style={{marginTop:22,padding:"20px 24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}><p style={{color:T.textMid,fontSize:14,fontFamily:FONT,marginBottom:10}}>What percentage of your portfolio do you own?</p><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:T.blue,fontWeight:700,fontSize:22,fontFamily:FONT}}>{data.ownPercent}% own</span><span style={{color:T.textLight,fontWeight:600,fontSize:22,fontFamily:FONT}}>{100-data.ownPercent}% manage</span></div><input type="range" min={0} max={100} value={data.ownPercent} onChange={e=>setData(d=>({...d,ownPercent:parseInt(e.target.value)}))} style={{width:"100%",accentColor:T.blue}}/></div></FadeIn>}{data.ownershipType && <><FadeIn delay={200}><p style={{marginTop:12,color:T.textLight,fontSize:12,fontFamily:FONT,fontStyle:"italic"}}>Your dedicated account rep will know your portfolio by name.</p></FadeIn><ContinueButton onClick={next} delay={250} /></>}</>}</>;
+    case "certify": return <><RevealText text="We'll be collecting your debt in no time!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="But first, we need you to certify the following:" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<><Checkbox checked={data.certifyNoDebt} onChange={val=>setData(d=>({...d,certifyNoDebt:val,certifyOwesDebt:val?false:d.certifyOwesDebt}))} label={`I, ${data.fullName||"the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`} delay={200} /><Checkbox checked={data.certifyOwesDebt} onChange={val=>setData(d=>({...d,certifyOwesDebt:val,certifyNoDebt:val?false:d.certifyNoDebt}))} label="I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau." delay={350} small />{data.certifyNoDebt&&<ContinueButton onClick={next} delay={150} />}{data.certifyOwesDebt&&<FadeIn delay={150}><div style={{marginTop:24,padding:"24px 28px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:16,fontFamily:FONT,margin:0,lineHeight:1.6}}>Please contact our main office directly at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> and we'll be happy to assist you.</p><button onClick={()=>setData(d=>({...d,certifyOwesDebt:false}))} style={{marginTop:16,padding:"10px 24px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,color:T.textMid,fontSize:14,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></div></FadeIn>}</>}</>;
 
-    case "sellSkipTrace": return <SellSection lines={[{text:"We invest in the latest skip tracing technology to locate and contact past-due tenants quickly."},{text:"Skip tracing is the process of tracking down tenants who have moved without paying. Using advanced databases, public records, and proprietary tools, we find them so your debt doesn't just disappear."}]} affirmLabel="That's impressive, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "contact": return <><RevealText text="Perfect!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="Now for some contact info so we can get in touch." delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<><TextInput value={data.email} onChange={v=>setData(d=>({...d,email:v}))} placeholder="Your email address" delay={150} type="email" autoFocus /><FadeIn delay={300}><input type="tel" value={data.phone} onChange={e=>setData(d=>({...d,phone:formatPhone(e.target.value)}))} placeholder="000-000-0000" style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}} onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}} onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}/></FadeIn><FadeIn delay={400}><div style={{display:"flex",alignItems:"flex-start",gap:10,marginTop:16,padding:"14px 18px",background:T.blueLight,borderRadius:10,border:`1px solid ${T.blueMid}`}}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{marginTop:2,flexShrink:0}}><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 11.5a.75.75 0 110-1.5.75.75 0 010 1.5zM10.75 9.5a.75.75 0 01-1.5 0V6.75a.75.75 0 011.5 0V9.5z" fill={T.blue}/></svg><p style={{color:T.textMid,fontSize:13,fontFamily:FONT,lineHeight:1.5,margin:0}}>You won't be added to any automated mailing lists. A real member of our team will reach out to you personally. No spam, we promise.</p></div></FadeIn><ContinueButton onClick={next} delay={500} disabled={!data.email.trim()||data.phone.replace(/\D/g,"").length<10} /></>}</>;
 
-    case "units": return <><RevealText text="How many units do you manage in total?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><TextInput value={data.totalUnits} onChange={v=>setData(d=>({...d,totalUnits:v.replace(/\D/g,"")}))} placeholder="Number of units" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.totalUnits} /></>}</>;
+    case "priorAgency": return <><RevealText text="Have you worked with a debt collection agency before?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18}}>{["Yes","No"].map(opt=>{const a=data.priorAgency===opt;return <button key={opt} onClick={()=>setData(d=>({...d,priorAgency:opt}))} style={{padding:"12px 36px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.priorAgency==="Yes"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 25 years specializing in residential rental collections, we think you'll notice the difference.</p></FadeIn>}{data.priorAgency==="No"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No worries at all. We'll walk you through the entire process. Over 25 years of experience means we've made it as simple as possible for first-timers.</p></FadeIn>}{data.priorAgency&&<ContinueButton onClick={next} delay={200} />}</>}</>;
 
-    case "sellBigPortfolio": {
-      if (!bigPortfolio) return <AutoAdvance onAdvance={next} />;
-      return <SellSection lines={[{text:`${parseInt(data.totalUnits).toLocaleString()} units? That's a serious portfolio.`},{text:"For portfolios your size, we personally check in with all your property managers and have them send debts right to us. We'll also assist with training and onboarding new property managers to your company to take that weight off your shoulders."}]} affirmLabel="That would be a huge help" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "debtTypes": return <><RevealText text="What kind of debts are you looking to get collected?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><MultiSelect options={DEBT_TYPES} selected={data.debtTypes} onToggle={opt=>setData(d=>({...d,debtTypes:d.debtTypes.includes(opt)?d.debtTypes.filter(x=>x!==opt):[...d.debtTypes,opt]}))} delay={200} />{data.debtTypes.includes("Other")&&<TextInput value={data.customDebtType||""} onChange={v=>setData(d=>({...d,customDebtType:v}))} placeholder="Describe the type of debt you need collected" delay={100} />}<ContinueButton onClick={next} delay={400} disabled={data.debtTypes.length===0||(data.debtTypes.includes("Other")&&!(data.customDebtType||"").trim())} /></>}</>;
+
+    case "debtsNow": return <><RevealText text="Do you have debts you're looking to get collected right now?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>{["Yes, we have accounts ready","Not yet, but soon"].map(opt=>{const a=data.debtsNow===opt;return <button key={opt} onClick={()=>setData(d=>({...d,debtsNow:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.debtsNow==="Yes, we have accounts ready"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement.</p></FadeIn>}{data.debtsNow==="Not yet, but soon"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list.</p></FadeIn>}{data.debtsNow&&<ContinueButton onClick={next} delay={200} />}</>}</>;
+
+    case "nonResBranch": return <><RevealText text="We specialize in residential rental debt, but we know the collections industry inside and out." delay={100} onComplete={()=>markTextDone("a")} className="hero-text" slow />{textsDone.a&&<RevealText text="We'd love to get in touch and recommend a great agency for your specific debt type. We know the ins and outs of what makes a good agency versus a not-so-good one." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" slow />}{textsDone.b&&<RevealText text="If you think you have enough volume for us to build a dedicated team just for you, we'd be happy to discuss that too." delay={200} onComplete={()=>markTextDone("c")} className="sub-text" slow />}{textsDone.c&&<FadeIn delay={300}><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:24}}><button onClick={()=>goTo("nonResStates")} style={{padding:"15px 32px",borderRadius:50,border:"none",background:T.blue,color:"#fff",fontSize:16,fontFamily:FONT,fontWeight:600,cursor:"pointer",boxShadow:`0 4px 18px ${T.blue}44`}}>Get me a recommendation</button><button onClick={()=>goTo("sellDedicatedTeam")} style={{padding:"15px 32px",borderRadius:50,border:`1.5px solid ${T.border}`,background:"#fff",color:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>I want a dedicated team, let's continue</button></div></FadeIn>}</>;
+
+    case "sellDedicatedTeam": return <SellSection icon={ICONS.people} lines={[{text:"At Advanced Collection Bureau, we train our staff on specific sectors to ensure the highest possible recovery rates."},{text:"For clients with enough volume, we build a team dedicated entirely to your accounts. They learn your business, your tenants, and your expectations inside and out."},{text:"We'd love to be that team for you.",accent:true}]} affirmLabel="Let's make it happen" onContinue={next} markTextDone={markTextDone} textsDone={textsDone}>
+      <LogoMarquee delay={300} />
+    </SellSection>;
+
+    case "nonResStates": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={()=>goTo("comments")} delay={350} disabled={data.states.length===0} /></>}</>;
+
+    case "sellAcbPitch": return <SellSection icon={ICONS.quote} lines={[{text:"Advanced Collection Bureau is the nation's leading residential rental debt collection agency."},{text:"We've recovered over $85 million for 2,400+ property managers nationwide. Our staff are trained specifically on residential rental collections."},{text:"We're happy to be your collection team.",accent:true}]} affirmLabel="That's what I need, let's go" onContinue={next} markTextDone={markTextDone} textsDone={textsDone}>
+      <TestimonialCard quote="They've helped us recover funds we had already written off, and their process is so seamless it feels like an extension of our own team. It's a huge relief knowing our collections are in such capable hands." name="Brittney Roulot" title="Owner" company="Maple Property Management" delay={300} />
+      <LogoMarquee delay={500} />
+    </SellSection>;
+
+    case "states": return <><RevealText text="What states do you operate in?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Click states or type to search</p></FadeIn><FadeIn delay={200}><USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)setData(d=>({...d,states:bulkSet}));else setData(d=>({...d,states:d.states.includes(name)?d.states.filter(x=>x!==name):[...d.states,name]}));}}/></FadeIn><ContinueButton onClick={next} delay={350} disabled={data.states.length===0} /></>}</>;
+
+    case "sellContingency": return <SellSection icon={ICONS.shield} lines={[{text:"We work on contingency only. There's no add-ons or upfront cost from you, ever."},{text:"If we don't collect anything, you don't pay, and we don't get paid. Every month without a collection partner, recoverable debt ages out and becomes harder to collect."}]} affirmLabel="Love it, keep going" onContinue={next} markTextDone={markTextDone} textsDone={textsDone}>
+      <FadeIn delay={300} slow><div style={{display:"flex",gap:24,justifyContent:"center",marginTop:16,flexWrap:"wrap"}}>
+        <StatCounter value="$85M" label="Recovered for clients" prefix="" delay={400} />
+        <StatCounter value="25" label="Years of experience" suffix="+" delay={600} />
+        <StatCounter value="2,400" label="Property managers served" suffix="+" delay={800} />
+      </div></FadeIn>
+      <TestimonialCard quote="They took over several aging accounts, provided full visibility into the process, and delivered results in weeks that we hadn't been able to achieve in months. It was hands-down one of the best operational decisions we've made." name="James Murphy" title="Director of Operations" company="Murphy Asset Living" delay={900} />
+    </SellSection>;
+
+    case "ownership": return <><RevealText text="Do you own the properties you manage, or do you manage on behalf of other owners?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={150}><div style={{display:"flex",gap:10,marginTop:18,flexWrap:"wrap"}}>{["We own them","We manage for others","We own and manage for others"].map(opt=>{const a=data.ownershipType===opt;return <button key={opt} onClick={()=>setData(d=>({...d,ownershipType:opt}))} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div></FadeIn>{data.ownershipType==="We own them"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all.</p></FadeIn>}{data.ownershipType==="We manage for others"&&<FadeIn delay={100}><p style={{marginTop:16,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions.</p></FadeIn>}{data.ownershipType==="We own and manage for others"&&<FadeIn delay={100}><div style={{marginTop:22,padding:"20px 24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}><p style={{color:T.textMid,fontSize:14,fontFamily:FONT,marginBottom:10}}>What percentage of your portfolio do you own?</p><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:T.blue,fontWeight:700,fontSize:22,fontFamily:FONT}}>{data.ownPercent}% own</span><span style={{color:T.textLight,fontWeight:600,fontSize:22,fontFamily:FONT}}>{100-data.ownPercent}% manage</span></div><input type="range" min={0} max={100} value={data.ownPercent} onChange={e=>setData(d=>({...d,ownPercent:parseInt(e.target.value)}))} style={{width:"100%",accentColor:T.blue}}/></div></FadeIn>}{data.ownershipType&&<><FadeIn delay={200}><p style={{marginTop:12,color:T.textLight,fontSize:12,fontFamily:FONT,fontStyle:"italic"}}>Your dedicated account rep will know your portfolio by name.</p></FadeIn><ContinueButton onClick={next} delay={250} /></>}</>}</>;
+
+    case "sellSkipTrace": return <SellSection icon={ICONS.search} lines={[{text:"We invest in the latest skip tracing technology to locate and contact past-due tenants quickly."},{text:"Skip tracing is the process of tracking down tenants who have moved without paying. Using advanced databases, public records, and proprietary tools, we find them so your debt doesn't just disappear. And our skip tracing is completely free to you."}]} affirmLabel="That's impressive, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+
+    case "units": return <><RevealText text="How many units do you manage in total?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><TextInput value={data.totalUnits} onChange={v=>setData(d=>({...d,totalUnits:v.replace(/\D/g,"")}))} placeholder="Number of units" delay={150} autoFocus /><ContinueButton onClick={next} delay={300} disabled={!data.totalUnits} /></>}</>;
+
+    case "sellRecoverableInsight": {
+      if(!units)return <AutoAdvance onAdvance={next} />;
+      const annualRec = Math.round(units/100*3200*0.30);
+      return <SellSection icon={ICONS.trendUp} lines={[{text:`With ${units.toLocaleString()} units, here's what we typically see:`},{text:`According to CFPB data, the median outstanding rental balance is now $3,200. With ${units.toLocaleString()} units, that represents roughly $${annualRec.toLocaleString()} in potential annual recoveries.`},{text:"Let's make sure that money finds its way back to you.",accent:true}]} affirmLabel="We're ready to recover what's ours" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
     }
 
-    case "sellUsStaff": return <SellSection lines={[{text:"All of our staff are based in the US. We don't outsource to big call centers or use overseas workers."},{text:"We believe in the quality of our staff, which means higher recovery rates for you."}]} affirmLabel="Quality matters, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "sellBigPortfolio": {
+      if(!bigPortfolio)return <AutoAdvance onAdvance={next} />;
+      return <SellSection icon={ICONS.people} lines={[{text:`${units.toLocaleString()} units? That's a serious portfolio.`},{text:"For portfolios your size, we personally check in with all your property managers and have them send debts right to us. We'll also assist with training and onboarding new property managers to your company to take that weight off your shoulders."}]} affirmLabel="That would be a huge help" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    }
 
-    case "rentalTypes": return <><RevealText text="What types of residential rentals do you manage?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={RENTAL_TYPES} selected={data.rentalTypes||[]} onToggle={opt=>setData(d=>({...d,rentalTypes:(d.rentalTypes||[]).includes(opt)?(d.rentalTypes||[]).filter(x=>x!==opt):[...(d.rentalTypes||[]),opt]}))} delay={200} />{(data.rentalTypes||[]).length > 0 && <ContinueButton onClick={next} delay={300} />}</>}</>;
+    case "sellUsStaff": return <SellSection icon={ICONS.mapPin} lines={[{text:"All of our staff are based in the US. We don't outsource to big call centers or use overseas workers."},{text:"We believe in the quality of our staff, which means higher recovery rates for you."}]} affirmLabel="Quality matters, continue" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
-    case "propertyTypes": return <><RevealText text="What types of properties are in your portfolio?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={PROPERTY_TYPES} selected={data.propertyTypes||[]} onToggle={opt=>setData(d=>({...d,propertyTypes:(d.propertyTypes||[]).includes(opt)?(d.propertyTypes||[]).filter(x=>x!==opt):[...(d.propertyTypes||[]),opt]}))} delay={200} />{(data.propertyTypes||[]).length > 0 && <ContinueButton onClick={next} delay={300} />}</>}</>;
+    case "rentalTypes": return <><RevealText text="What types of residential rentals do you manage?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={RENTAL_TYPES} selected={data.rentalTypes||[]} onToggle={opt=>setData(d=>({...d,rentalTypes:(d.rentalTypes||[]).includes(opt)?(d.rentalTypes||[]).filter(x=>x!==opt):[...(d.rentalTypes||[]),opt]}))} delay={200} />{(data.rentalTypes||[]).length>0&&<ContinueButton onClick={next} delay={300} />}</>}</>;
+
+    case "propertyTypes": return <><RevealText text="What types of properties are in your portfolio?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply</p></FadeIn><MultiSelect options={PROPERTY_TYPES} selected={data.propertyTypes||[]} onToggle={opt=>setData(d=>({...d,propertyTypes:(d.propertyTypes||[]).includes(opt)?(d.propertyTypes||[]).filter(x=>x!==opt):[...(d.propertyTypes||[]),opt]}))} delay={200} />{(data.propertyTypes||[]).length>0&&<ContinueButton onClick={next} delay={300} />}</>}</>;
 
     case "avgRent": {
-      const sliderPos = data.rentSliderPos ?? rentValueToSlider(1500);
-      const rentVal = rentSliderToValue(sliderPos);
-      return <><RevealText text="What's the average monthly rental rate per unit?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={150}><div style={{marginTop:20,padding:"24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}>
+      const sliderPos=data.rentSliderPos??rentValueToSlider(1500);
+      const rentVal=rentSliderToValue(sliderPos);
+      return <><RevealText text="What's the average monthly rental rate per unit?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={150}><div style={{marginTop:20,padding:"24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}>
         <div style={{textAlign:"center",marginBottom:16}}><span style={{fontSize:36,fontWeight:700,color:T.blue,fontFamily:FONT}}>{formatRent(rentVal)}</span><span style={{fontSize:14,color:T.textLight,fontFamily:FONT,marginLeft:6}}>/ month</span></div>
         <input type="range" min={0} max={RENT_TICKS.length-1} value={sliderPos} onChange={e=>{const pos=parseInt(e.target.value);setData(d=>({...d,rentSliderPos:pos,avgRent:rentSliderToValue(pos)}));}} style={{width:"100%",accentColor:T.blue,height:8}} />
         <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$500</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$2,000</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$100,000+</span></div>
       </div></FadeIn><ContinueButton onClick={next} delay={300} /></>}</>;
     }
 
-    case "listings": return <><SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done && <><div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" /></div>{textsDone.list_q && <><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other") && <TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>}</>;
+    case "listings": return <><SellSection icon={ICONS.phone} lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done&&<><div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" /></div>{textsDone.list_q&&<><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other")&&<TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>}</>;
 
-    case "pmSoftware": return <><RevealText text="What property management software do you use?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply, or skip if you don't use any</p></FadeIn><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>({...d,pmSoftware:(d.pmSoftware||[]).includes(opt)?(d.pmSoftware||[]).filter(x=>x!==opt):[...(d.pmSoftware||[]),opt]}))} delay={200} />{(data.pmSoftware||[]).includes("Other") && <TextInput value={data.customPM||""} onChange={v=>setData(d=>({...d,customPM:v}))} placeholder="What software do you use?" delay={100} />}<div style={{display:"flex",gap:12,marginTop:24,flexWrap:"wrap"}}><ContinueButton onClick={next} delay={350} disabled={(data.pmSoftware||[]).length===0} /><FadeIn delay={400}><button onClick={()=>{setData(d=>({...d,pmSoftware:["None"],customPM:""}));next();}} style={{marginTop:28,padding:"15px 36px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:16,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>We don't use any</button></FadeIn></div></>}</>;
+    case "pmSoftware": return <><RevealText text="What property management software do you use?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply, or skip if you don't use any</p></FadeIn><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>({...d,pmSoftware:(d.pmSoftware||[]).includes(opt)?(d.pmSoftware||[]).filter(x=>x!==opt):[...(d.pmSoftware||[]),opt]}))} delay={200} />{(data.pmSoftware||[]).includes("Other")&&<TextInput value={data.customPM||""} onChange={v=>setData(d=>({...d,customPM:v}))} placeholder="What software do you use?" delay={100} />}<div style={{display:"flex",gap:12,marginTop:24,flexWrap:"wrap"}}><ContinueButton onClick={next} delay={350} disabled={(data.pmSoftware||[]).length===0} /><FadeIn delay={400}><button onClick={()=>{setData(d=>({...d,pmSoftware:["None"],customPM:""}));next();}} style={{marginTop:28,padding:"15px 36px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:16,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>We don't use any</button></FadeIn></div></>}</>;
 
     case "sellReporting": {
-      if (!bigPortfolio) return <AutoAdvance onAdvance={next} />;
-      return <SellSection lines={[{text:"For portfolios your size, we offer customized reporting."},{text:"We tailor the data to show the metrics you care about most, so you always know exactly where your accounts stand."}]} affirmLabel="That's exactly what I need" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+      if(!bigPortfolio)return <AutoAdvance onAdvance={next} />;
+      return <SellSection icon={ICONS.chart} lines={[{text:"For portfolios your size, we offer customized reporting."},{text:"We tailor the data to show the metrics you care about most, so you always know exactly where your accounts stand."}]} affirmLabel="That's exactly what I need" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
     }
 
-    case "sellStrategy": return <SellSection lines={[{text:"We take the time to understand your unique needs and craft a customized debt recovery strategy just for you."},{text:"No cookie-cutter approaches. Your portfolio is unique, and your recovery plan should be too."}]} affirmLabel="Let's wrap this up" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
+    case "sellStrategy": return <SellSection icon={ICONS.sliders} lines={[{text:"We take the time to understand your unique needs and craft a customized debt recovery strategy just for you."},{text:"No cookie-cutter approaches. Your portfolio is unique, and your recovery plan should be too."}]} affirmLabel="Let's wrap this up" onContinue={next} markTextDone={markTextDone} textsDone={textsDone}>
+      <TestimonialCard quote="It felt like having an extension of our own team rather than an outside vendor. They took the time to really understand our needs, and it showed in the results." name="Shelia Corinne" title="Broker Owner" company="Moshko Properties" delay={300} />
+      <TestimonialCard quote="We saw results much faster than expected, and their performance-based model meant we weren't risking money on a service that might not deliver. The entire process was seamless and added real value to our company's bottom line." name="Mark Albert" title="Senior Property Manager" company="Lone Star Residential Management" delay={500} />
+    </SellSection>;
 
-    // ═══ SHARED FINAL ═══
-    case "comments": return <><RevealText text="Almost done!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="Do you have any questions or comments for our team?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <>{!data.noQuestions && <TextArea value={data.comments||""} onChange={v=>setData(d=>({...d,comments:v}))} placeholder="Any questions, comments, or things we should know..." delay={150} />}<FadeIn delay={250}><div role="button" tabIndex={0} onClick={()=>setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}))} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}));}}} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:data.noQuestions?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:data.noQuestions?T.blueLight:"#fff",color:data.noQuestions?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:data.noQuestions?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{data.noQuestions && "✓ "}Nope, all good!</div></FadeIn>{(data.noQuestions||(data.comments||"").trim()) && <ContinueButton onClick={next} label="Submit" delay={200} />}</>}</>;
+    case "comments": return <><RevealText text="Almost done!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="Do you have any questions or comments for our team?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<>{!data.noQuestions&&<TextArea value={data.comments||""} onChange={v=>setData(d=>({...d,comments:v}))} placeholder="Any questions, comments, or things we should know..." delay={150} />}<FadeIn delay={250}><div role="button" tabIndex={0} onClick={()=>setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}))} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}));}}} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:data.noQuestions?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:data.noQuestions?T.blueLight:"#fff",color:data.noQuestions?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:data.noQuestions?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{data.noQuestions&&"✓ "}Nope, all good!</div></FadeIn>{(data.noQuestions||(data.comments||"").trim())&&<ContinueButton onClick={next} label="Submit" delay={200} />}</>}</>;
 
-    case "done": return <><Confetti /><RevealText text={`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a && <RevealText text="We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b && <FadeIn delay={300}><div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p></div></FadeIn>}</>;
+    case "done": return <><Confetti /><RevealText text={`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<FadeIn delay={300}><div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p></div></FadeIn>}</>;
 
     default: return null;
   }
 }
 
-// Step flow definitions
-const RESIDENTIAL_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","sellAcbPitch","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","rentalTypes","propertyTypes","avgRent","listings","pmSoftware","sellReporting","sellStrategy","comments","done"];
-const NON_RES_SHORT_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","nonResStates","comments","done"];
-const DEDICATED_TEAM_FLOW = ["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","sellDedicatedTeam","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","sellStrategy","comments","done"];
+/* ═══ FLOW DEFINITIONS ═══ */
+const RESIDENTIAL_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","sellAcbPitch","states","sellContingency","ownership","sellSkipTrace","units","sellRecoverableInsight","rentalTypes","sellBigPortfolio","propertyTypes","sellUsStaff","avgRent","listings","pmSoftware","sellReporting","sellStrategy","comments","done"];
+const NON_RES_SHORT_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","nonResStates","comments","done"];
+const DEDICATED_TEAM_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","sellDedicatedTeam","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","sellStrategy","comments","done"];
 
-function LeadIntakeForm() {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [flow, setFlow] = useState(RESIDENTIAL_FLOW);
-  const [data, setData] = useState({ fullName:"", companyName:"", noCompany:false, companyWebsite:"", noWebsite:false, certifyNoDebt:false, certifyOwesDebt:false, email:"", phone:"", priorAgency:"", debtTypes:[], customDebtType:"", debtsNow:"", states:[], ownershipType:"", ownPercent:50, totalUnits:"", rentalTypes:[], propertyTypes:[], avgRent:1500, rentSliderPos:rentValueToSlider(1500), listingSites:[], customListing:"", pmSoftware:[], customPM:"", comments:"", noQuestions:false });
-  const [textsDone, setTextsDone] = useState({});
-  const trackingData = useRef({ location: "Loading...", device: "", referrer: "", timezone: "" });
+/* ═══ MAIN COMPONENT ═══ */
+function LeadIntakeForm(){
+  const [stepIndex,setStepIndex]=useState(0);
+  const [flow,setFlow]=useState(RESIDENTIAL_FLOW);
+  const [data,setData]=useState({fullName:"",companyName:"",noCompany:false,companyWebsite:"",noWebsite:false,certifyNoDebt:false,certifyOwesDebt:false,email:"",phone:"",priorAgency:"",debtTypes:[],customDebtType:"",debtsNow:"",states:[],ownershipType:"",ownPercent:50,totalUnits:"",rentalTypes:[],propertyTypes:[],avgRent:1500,rentSliderPos:rentValueToSlider(1500),listingSites:[],customListing:"",pmSoftware:[],customPM:"",comments:"",noQuestions:false});
+  const [textsDone,setTextsDone]=useState({});
+  const trackingData=useRef({location:"Loading...",device:"",referrer:"",timezone:"",clarityUrl:""});
+  const hasContactInfo=useRef(false);
+  const formSubmitted=useRef(false);
 
-  useEffect(() => {
-    const ua = navigator.userAgent;
-    let device = /Mobile|Android|iPhone|iPad/i.test(ua) ? (/iPad/i.test(ua) ? "Tablet" : "Mobile") : "Desktop";
-    let browser = ua.includes("Chrome") && !ua.includes("Edg") ? "Chrome" : ua.includes("Firefox") ? "Firefox" : ua.includes("Safari") && !ua.includes("Chrome") ? "Safari" : ua.includes("Edg") ? "Edge" : "Unknown";
-    let os = ua.includes("Windows") ? "Windows" : ua.includes("Mac OS") ? "macOS" : ua.includes("Linux") ? "Linux" : ua.includes("Android") ? "Android" : (ua.includes("iPhone")||ua.includes("iPad")) ? "iOS" : "Unknown";
-    trackingData.current.device = `${device} / ${browser} / ${os}`;
+  // Session save/restore
+  useEffect(()=>{
+    try{
+      const saved=sessionStorage.getItem("acb_form_progress");
+      if(saved){const p=JSON.parse(saved);if(p.data&&p.stepIndex!=null&&p.flow){setData(p.data);setStepIndex(p.stepIndex);setFlow(p.flow);setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});}}
+    }catch(e){}
+  },[]);
+  useEffect(()=>{
+    if(flow[stepIndex]==="done")return;
+    try{sessionStorage.setItem("acb_form_progress",JSON.stringify({data,stepIndex,flow}));}catch(e){}
+  },[data,stepIndex,flow]);
 
-    let originalRef = "(Direct visit)";
-    try { if (window.parent && window.parent !== window) { try { originalRef = window.parent.document.referrer || "(Direct visit)"; } catch(e) {} } else { originalRef = document.referrer || "(Direct visit)"; }
-      if (originalRef && originalRef !== "(Direct visit)") { const refHost = new URL(originalRef).hostname; if (refHost.includes("advancedcb.com") || refHost.includes("advancedcollectionbureau")) { originalRef = "(Internal navigation)"; } else { originalRef = refHost + new URL(originalRef).pathname; } }
-    } catch(e) { originalRef = "(Could not determine)"; }
-    trackingData.current.referrer = originalRef;
+  // Tracking: device, referrer, IP, Clarity
+  useEffect(()=>{
+    const ua=navigator.userAgent;
+    const device=/Mobile|Android|iPhone|iPad/i.test(ua)?(/iPad/i.test(ua)?"Tablet":"Mobile"):"Desktop";
+    const browser=ua.includes("Chrome")&&!ua.includes("Edg")?"Chrome":ua.includes("Firefox")?"Firefox":ua.includes("Safari")&&!ua.includes("Chrome")?"Safari":ua.includes("Edg")?"Edge":"Unknown";
+    const os=ua.includes("Windows")?"Windows":ua.includes("Mac OS")?"macOS":ua.includes("Linux")?"Linux":ua.includes("Android")?"Android":(ua.includes("iPhone")||ua.includes("iPad"))?"iOS":"Unknown";
+    trackingData.current.device=`${device} / ${browser} / ${os}`;
 
-    try { let params = new URLSearchParams(window.location.search); try { if (window.parent && window.parent !== window) { const pp = new URLSearchParams(window.parent.location.search); pp.forEach((v,k) => { if (!params.has(k)) params.set(k,v); }); } } catch(e) {}
-      const utms = ["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", "); if (utms) trackingData.current.referrer += ` | UTMs: ${utms}`;
-    } catch(e) {}
+    let originalRef="(Direct visit)";
+    try{if(window.parent&&window.parent!==window){try{originalRef=window.parent.document.referrer||"(Direct visit)";}catch(e){}}else{originalRef=document.referrer||"(Direct visit)";}
+      if(originalRef&&originalRef!=="(Direct visit)"){const refHost=new URL(originalRef).hostname;if(refHost.includes("advancedcb.com")||refHost.includes("advancedcollectionbureau")){originalRef="(Internal navigation)";}else{originalRef=refHost+new URL(originalRef).pathname;}}
+    }catch(e){originalRef="(Could not determine)";}
+    trackingData.current.referrer=originalRef;
 
-    try { trackingData.current.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) { trackingData.current.timezone = "(Unknown)"; }
+    try{let params=new URLSearchParams(window.location.search);try{if(window.parent&&window.parent!==window){const pp=new URLSearchParams(window.parent.location.search);pp.forEach((v,k)=>{if(!params.has(k))params.set(k,v);});}}catch(e){}
+      const utms=["utm_source","utm_medium","utm_campaign","utm_term","utm_content"].filter(k=>params.get(k)).map(k=>`${k}=${params.get(k)}`).join(", ");if(utms)trackingData.current.referrer+=` | UTMs: ${utms}`;
+    }catch(e){}
 
-    fetch("https://ipapi.co/json/").then(r => r.json()).then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`; if (d.timezone) trackingData.current.timezone = d.timezone; }).catch(() => {
-      fetch("https://ipinfo.io/json?token=").then(r => r.json()).then(d => { trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`; if (d.timezone) trackingData.current.timezone = d.timezone; }).catch(() => { trackingData.current.location = "(Could not determine)"; });
+    try{trackingData.current.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){trackingData.current.timezone="(Unknown)";}
+
+    fetch("https://ipapi.co/json/").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;if(d.timezone)trackingData.current.timezone=d.timezone;}).catch(()=>{
+      fetch("https://ipinfo.io/json?token=").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;if(d.timezone)trackingData.current.timezone=d.timezone;}).catch(()=>{trackingData.current.location="(Could not determine)";});
     });
-  }, []);
 
-  const markTextDone = useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));}, []);
-
-  const currentStep = flow[stepIndex] || "done";
-
-  const submitForm = useCallback((formData) => {
-    const t = trackingData.current;
-    const now = new Date();
-    const estTime = now.toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }) + " EST";
-    let websiteVal = "(No website)";
-    if (!formData.noWebsite && formData.companyWebsite) { let url = formData.companyWebsite; if (!/^https?:\/\//i.test(url)) url = "https://" + url; websiteVal = `<a href="${url}">${formData.companyWebsite}</a>`; }
-    const isRes = formData.debtTypes.includes("Residential Rental Debt");
-
-    const payload = {
-      "Name": formData.fullName,
-      "Company": formData.noCompany ? "(Independent owner)" : formData.companyName,
-      "Email": formData.email,
-      "Phone Number": formData.phone,
-      "Website": websiteVal,
-      "Debt Types": formData.debtTypes.join(", ") + (formData.customDebtType ? ` (${formData.customDebtType})` : ""),
-      "Debts Ready Now": formData.debtsNow || "(Not answered)",
-      "Prior Collection Agency": formData.priorAgency || "(Not answered)",
-      "States": formData.states.join(", "),
-    };
-    if (isRes) {
-      payload["Ownership"] = formData.ownershipType + (formData.ownershipType === "We own and manage for others" ? ` (${formData.ownPercent}% own / ${100 - formData.ownPercent}% manage)` : "");
-      payload["Total Units"] = formData.totalUnits;
-      payload["Rental Types"] = (formData.rentalTypes || []).join(", ");
-      payload["Property Types"] = (formData.propertyTypes || []).join(", ");
-      payload["Avg Rent / Unit"] = formatRent(formData.avgRent || 1500);
-      payload["Listing Sites"] = formData.listingSites.join(", ") + (formData.customListing ? ` (${formData.customListing})` : "");
-      payload["PM Software"] = (formData.pmSoftware || []).join(", ") + (formData.customPM ? ` (${formData.customPM})` : "");
-    }
-    payload["Comments"] = formData.noQuestions ? "(No questions)" : (formData.comments || "(None)");
-    payload["Location / IP"] = t.location;
-    payload["Device"] = t.device;
-    payload["Referrer"] = t.referrer;
-    payload["Likely Timezone"] = t.timezone;
-    payload["Submitted (EST)"] = estTime;
-    payload._subject = `${formData.fullName} | ${formData.noCompany ? "Independent" : formData.companyName} | Units: ${formData.totalUnits || "N/A"} | Avg Rent: ${formatRent(formData.avgRent || 0)} | ${formData.phone} | ${formData.email}`;
-    payload._captcha = "false";
-    payload._template = "table";
-    payload._replyto = formData.email;
-    if (CC_EMAILS) payload._cc = CC_EMAILS;
-
-    console.log("Form submitted:", payload);
-    if (FORMSUBMIT_ID) {
-      fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(payload) }).then(r => r.json()).then(d => console.log("FormSubmit response:", d)).catch(err => console.error("Submit error:", err));
-    }
-  }, []);
-
-  const next = useCallback(()=>{
-    setTextsDone({});
-    const curStep = flow[stepIndex];
-
-    // Branch: after debtsNow, always re-evaluate the correct path
-    if (curStep === "debtsNow") {
-      if (data.debtTypes.includes("Residential Rental Debt")) {
-        setFlow(RESIDENTIAL_FLOW);
-        setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow") + 1);
-      } else {
-        setFlow(NON_RES_SHORT_FLOW);
-        setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
+    // Microsoft Clarity session URL
+    try{
+      if(window.parent&&window.parent.clarity){
+        window.parent.clarity("identify","","","",(sessionId)=>{
+          if(sessionId)trackingData.current.clarityUrl=`https://clarity.microsoft.com/projects/${CLARITY_PROJECT_ID}/sessions/${sessionId}`;
+        });
       }
-      window.scrollTo({top:0,behavior:"smooth"});
-      return;
+    }catch(e){}
+    // Fallback: try reading Clarity cookie
+    try{
+      const cookies=document.cookie.split(";").map(c=>c.trim());
+      const clCookie=cookies.find(c=>c.startsWith("_clsk="));
+      if(clCookie){const val=clCookie.split("=")[1];const sessionId=val.split("|")[0];if(sessionId)trackingData.current.clarityUrl=trackingData.current.clarityUrl||`https://clarity.microsoft.com/projects/${CLARITY_PROJECT_ID}/sessions/${sessionId}`;}
+    }catch(e){}
+  },[]);
+
+  // Abandonment: fire partial submit on page unload if we have contact info
+  useEffect(()=>{
+    const handleUnload=()=>{
+      if(hasContactInfo.current&&!formSubmitted.current&&FORMSUBMIT_ID){
+        const t=trackingData.current;
+        const partial={
+          "_subject":"[PARTIAL] "+data.fullName+(data.companyName?" - "+data.companyName:"")+" (abandoned at: "+flow[stepIndex]+")",
+          "Name":data.fullName,"Company":data.noCompany?"(Independent)":data.companyName,
+          "Email":data.email,"Phone":data.phone,
+          "Last Step":flow[stepIndex],"Location":t.location,"Device":t.device,
+          _captcha:"false",_template:"table",_replyto:data.email
+        };
+        if(CC_EMAILS)partial._cc=CC_EMAILS;
+        navigator.sendBeacon(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,new Blob([JSON.stringify(partial)],{type:"application/json"}));
+      }
+    };
+    window.addEventListener("beforeunload",handleUnload);
+    return()=>window.removeEventListener("beforeunload",handleUnload);
+  },[data,stepIndex,flow]);
+
+  const markTextDone=useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));},[]);
+  const currentStep=flow[stepIndex]||"done";
+
+  const submitForm=useCallback((formData)=>{
+    formSubmitted.current=true;
+    try{sessionStorage.removeItem("acb_form_progress");}catch(e){}
+    const t=trackingData.current;
+    const now=new Date();
+    const estTime=now.toLocaleString("en-US",{timeZone:"America/New_York",weekday:"short",year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})+" EST";
+    let websiteVal="(No website)";
+    if(!formData.noWebsite&&formData.companyWebsite){let url=formData.companyWebsite;if(!/^https?:\/\//i.test(url))url="https://"+url;websiteVal=`<a href="${url}">${formData.companyWebsite}</a>`;}
+    const isRes=formData.debtTypes.includes("Residential Rental Debt");
+
+    const payload={"Name":formData.fullName,"Company":formData.noCompany?"(Independent owner)":formData.companyName,"Email":formData.email,"Phone Number":formData.phone,"Website":websiteVal,"Debt Types":formData.debtTypes.join(", ")+(formData.customDebtType?` (${formData.customDebtType})`:""),"Debts Ready Now":formData.debtsNow||"(Not answered)","Prior Collection Agency":formData.priorAgency||"(Not answered)","States":formData.states.join(", ")};
+    if(isRes){
+      payload["Ownership"]=formData.ownershipType+(formData.ownershipType==="We own and manage for others"?` (${formData.ownPercent}% own / ${100-formData.ownPercent}% manage)`:"");
+      payload["Total Units"]=formData.totalUnits;
+      payload["Rental Types"]=(formData.rentalTypes||[]).join(", ");
+      payload["Property Types"]=(formData.propertyTypes||[]).join(", ");
+      payload["Avg Rent / Unit"]=formatRent(formData.avgRent||1500);
+      payload["Listing Sites"]=formData.listingSites.join(", ")+(formData.customListing?` (${formData.customListing})`:"");
+      payload["PM Software"]=(formData.pmSoftware||[]).join(", ")+(formData.customPM?` (${formData.customPM})`:"");
     }
+    payload["Comments"]=formData.noQuestions?"(No questions)":(formData.comments||"(None)");
+    payload["Location / IP"]=t.location;
+    payload["Device"]=t.device;
+    payload["Referrer"]=t.referrer;
+    if(t.clarityUrl)payload["Clarity Recording"]=`<a href="${t.clarityUrl}">View Session Recording</a>`;
+    payload["Likely Timezone"]=t.timezone;
+    payload["Submitted (EST)"]=estTime;
+    payload._subject=`${formData.fullName} | ${formData.noCompany?"Independent":formData.companyName} | Units: ${formData.totalUnits||"N/A"} | Avg Rent: ${formatRent(formData.avgRent||0)} | ${formData.phone} | ${formData.email}`;
+    payload._captcha="false";payload._template="table";payload._replyto=formData.email;
+    if(CC_EMAILS)payload._cc=CC_EMAILS;
 
-    // Submit on last real step (comments -> done)
-    if (curStep === "comments") {
-      submitForm(data);
-    }
+    console.log("Form submitted:",payload);
+    if(FORMSUBMIT_ID){fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).then(d=>console.log("FormSubmit response:",d)).catch(err=>console.error("Submit error:",err));}
+  },[]);
 
-    setStepIndex(i => i + 1);
-    window.scrollTo({top:0,behavior:"smooth"});
-  }, [data, submitForm, flow, stepIndex]);
-
-  const goTo = useCallback((stepName) => {
+  const next=useCallback(()=>{
     setTextsDone({});
-    if (stepName === "sellDedicatedTeam") {
-      setFlow(DEDICATED_TEAM_FLOW);
-      setStepIndex(DEDICATED_TEAM_FLOW.indexOf("sellDedicatedTeam"));
-    } else if (stepName === "sellAcbPitch") {
-      setFlow(RESIDENTIAL_FLOW);
-      setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));
-    } else if (stepName === "nonResStates") {
-      setFlow(NON_RES_SHORT_FLOW);
-      setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));
-    } else {
-      const idx = flow.indexOf(stepName);
-      if (idx >= 0) setStepIndex(idx);
+    const curStep=flow[stepIndex];
+    // Mark contact info collected for abandonment tracking
+    if(curStep==="contact")hasContactInfo.current=true;
+    // Branch after debtsNow
+    if(curStep==="debtsNow"){
+      if(data.debtTypes.includes("Residential Rental Debt")){setFlow(RESIDENTIAL_FLOW);setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow")+1);}
+      else{setFlow(NON_RES_SHORT_FLOW);setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));}
+      window.scrollTo({top:0,behavior:"smooth"});return;
     }
+    if(curStep==="comments")submitForm(data);
+    setStepIndex(i=>i+1);
     window.scrollTo({top:0,behavior:"smooth"});
-  }, [flow]);
+  },[data,submitForm,flow,stepIndex]);
 
-  const back = useCallback(()=>{
-    // When going back, pre-fill all text animations so fields show immediately
-    setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});
-    setStepIndex(i=>Math.max(0,i-1));
+  const goTo=useCallback((stepName)=>{
+    setTextsDone({});
+    if(stepName==="sellDedicatedTeam"){setFlow(DEDICATED_TEAM_FLOW);setStepIndex(DEDICATED_TEAM_FLOW.indexOf("sellDedicatedTeam"));}
+    else if(stepName==="sellAcbPitch"){setFlow(RESIDENTIAL_FLOW);setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));}
+    else if(stepName==="nonResStates"){setFlow(NON_RES_SHORT_FLOW);setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));}
+    else{const idx=flow.indexOf(stepName);if(idx>=0)setStepIndex(idx);}
     window.scrollTo({top:0,behavior:"smooth"});
-  }, []);
+  },[flow]);
 
-  const totalSteps = flow.length;
-  const progress = Math.round((stepIndex / (totalSteps - 1)) * 100);
+  const back=useCallback(()=>{setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});setStepIndex(i=>Math.max(0,i-1));window.scrollTo({top:0,behavior:"smooth"});},[]);
 
-  useEffect(() => {
-    const handler = (e) => { if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && !e.target.closest('[role="button"]')) { const btn = document.querySelector(".continue-btn:not(:disabled)"); if (btn) btn.click(); } };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  const totalSteps=flow.length;
+  const progress=Math.round((stepIndex/(totalSteps-1))*100);
+
+  useEffect(()=>{
+    const handler=(e)=>{if(e.key==="Enter"&&e.target.tagName!=="TEXTAREA"&&!e.target.closest('[role="button"]')){const btn=document.querySelector(".continue-btn:not(:disabled)");if(btn)btn.click();}};
+    window.addEventListener("keydown",handler);return()=>window.removeEventListener("keydown",handler);
+  },[]);
 
   return <>
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
       *{box-sizing:border-box;margin:0;padding:0;}
       body{background:${T.bg};min-height:100vh;}
-      .form-outer{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;background:${T.bg};font-family:${FONT};}
-      .step-card{width:100%;max-width:640px;min-height:260px;background:${T.card};border-radius:20px;padding:44px 40px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.03);border:1px solid ${T.border}44;}
-      .hero-text{font-size:25px;font-weight:700;color:${T.text};line-height:1.4;margin-bottom:4px;letter-spacing:-0.02em;}
-      .sub-text{font-size:17px;color:${T.textMid};line-height:1.6;margin-top:10px;margin-bottom:4px;font-weight:400;}
+      .form-outer{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 24px 48px;background:${T.bg};font-family:${FONT};}
+      .step-card{width:100%;max-width:740px;min-height:260px;background:${T.card};border-radius:20px;padding:48px 48px;box-shadow:0 1px 3px rgba(0,0,0,0.04),0 8px 32px rgba(0,0,0,0.03);border:1px solid ${T.border}44;}
+      .hero-text{font-size:26px;font-weight:700;color:${T.text};line-height:1.4;margin-bottom:4px;letter-spacing:-0.02em;}
+      .sub-text{font-size:17px;color:${T.textMid};line-height:1.65;margin-top:10px;margin-bottom:4px;font-weight:400;}
       .accent-text{font-size:18px;color:${T.blue};font-weight:600;line-height:1.5;margin-top:14px;}
       .back-btn{position:fixed;bottom:28px;left:28px;padding:10px 22px;background:${T.card};border:1px solid ${T.border};border-radius:50px;color:${T.textLight};font-size:13px;font-family:${FONT};font-weight:500;cursor:pointer;transition:all 0.3s;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
       .back-btn:hover{color:${T.textMid};border-color:${T.blue}44;}
       @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
-      @media(max-width:640px){.hero-text{font-size:21px;}.step-card{padding:32px 24px;border-radius:16px;}.form-outer{padding:32px 16px;}}
+      @keyframes logo-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+      @media(max-width:640px){.hero-text{font-size:21px;}.step-card{padding:28px 20px;border-radius:16px;max-width:100%;}.form-outer{padding:16px 12px 48px;}}
     `}</style>
     <ProgressBar progress={progress} />
     <div className="form-outer">
-      <div className="step-card"><StepContent key={currentStep + stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} /></div>
-      {stepIndex > 0 && currentStep !== "done" && <button className="back-btn" onClick={back}>Back</button>}
+      <div className="step-card"><StepContent key={currentStep+stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} /></div>
+      {stepIndex>0&&currentStep!=="done"&&<button className="back-btn" onClick={back}>Back</button>}
     </div>
   </>;
 }
