@@ -508,10 +508,12 @@ function LeadIntakeForm(){
     if(CC_EMAILS)payload._cc=CC_EMAILS;
 
     console.log("Form submitted:",payload);
-    if(FORMSUBMIT_ID){fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).then(d=>console.log("FormSubmit response:",d)).catch(err=>console.error("Submit error:",err));}
 
-    // Send to ACB Lead Console
-    fetch("https://www.advancedcb.app/api/webhooks/intake-form",{method:"POST",headers:{"Content-Type":"application/json","x-webhook-secret":"RB3KPFKnEmaqIt9cSlJEMs3y0Ezh9CRj"},body:JSON.stringify(formData)}).catch(()=>{});
+    // Primary: send to ACB Lead Console (most important — creates the lead)
+    fetch("https://www.advancedcb.app/api/webhooks/intake-form",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(formData)}).then(r=>r.json()).then(d=>console.log("Lead Console response:",d)).catch(err=>console.error("Lead Console error:",err));
+
+    // Secondary: also send email notification via FormSubmit (fire and forget)
+    if(FORMSUBMIT_ID){fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});}
   },[]);
 
   const next=useCallback(()=>{
