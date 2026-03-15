@@ -509,6 +509,9 @@ function LeadIntakeForm(){
 
     console.log("Form submitted:",payload);
     if(FORMSUBMIT_ID){fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)}).then(r=>r.json()).then(d=>console.log("FormSubmit response:",d)).catch(err=>console.error("Submit error:",err));}
+
+    // Send to ACB Lead Console
+    fetch("https://advancedcb.app/api/webhooks/intake-form",{method:"POST",headers:{"Content-Type":"application/json","x-webhook-secret":"RB3KPFKnEmaqIt9cSlJEMs3y0Ezh9CRj"},body:JSON.stringify(formData)}).catch(()=>{});
   },[]);
 
   const next=useCallback(()=>{
