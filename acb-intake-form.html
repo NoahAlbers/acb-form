@@ -448,7 +448,10 @@ function LeadIntakeForm(){
     });
 
     // Health check for Lead Console API
-    fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';}).catch(()=>{apiHealthy.current=false;});
+    fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';if(d.status==='ok'){fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'form_opened',form_version:FORM_VERSION,fields:{},metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent}})}).catch(()=>{});}}).catch(()=>{apiHealthy.current=false;});
+
+    // Heartbeat interval
+    const heartbeatInterval=setInterval(()=>{if(!formSubmitted.current){fetch(LEAD_CONSOLE_API+'/api/leads/heartbeat',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({session_id:sessionId.current})}).catch(()=>{});}},30000);
 
     // Microsoft Clarity session URL
     try{
@@ -464,6 +467,7 @@ function LeadIntakeForm(){
       const clCookie=cookies.find(c=>c.startsWith("_clsk="));
       if(clCookie){const val=clCookie.split("=")[1];const sessionId=val.split("|")[0];if(sessionId)trackingData.current.clarityUrl=trackingData.current.clarityUrl||`https://clarity.microsoft.com/projects/${CLARITY_PROJECT_ID}/sessions/${sessionId}`;}
     }catch(e){}
+    return()=>{clearInterval(heartbeatInterval);};
   },[]);
 
   // Partial capture helper
@@ -566,7 +570,8 @@ function LeadIntakeForm(){
         location:trackingData.current.location,
         device:trackingData.current.device,
         timezone:trackingData.current.timezone,
-        clarity_url:trackingData.current.clarityUrl
+        clarity_url:trackingData.current.clarityUrl,
+        clarity_session_id:(()=>{try{let csid=null;if(window.clarity){window.clarity('get','sessionId',(id)=>{csid=id;});}return csid;}catch(e){return null;}})()
       }
     };
 
