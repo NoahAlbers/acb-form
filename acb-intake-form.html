@@ -31,6 +31,9 @@
     const FORMSUBMIT_ID = "dfeca48013a9d6519627f295dd99503c";
     const CC_EMAILS = "";
     const CLARITY_PROJECT_ID = "qo6gcqjdc7";
+    const LEAD_CONSOLE_API = 'https://www.advancedcb.app';
+    const FORM_API_KEY = 'acb-form-secret-2026';
+    const FORM_VERSION = '1.0';
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -285,7 +288,7 @@ function Confetti(){
 }
 
 /* ═══ STEP CONTENT ═══ */
-function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone}){
+function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone,receiptId}){
   const firstName=data.fullName.split(" ")[0]||"";
   const isRes=data.debtTypes.includes("Residential Rental Debt");
   const bigPortfolio=parseInt(data.totalUnits||"0")>=1000;
@@ -380,7 +383,10 @@ function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone}){
 
     case "comments": return <><RevealText text="Almost done!" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="Do you have any questions or comments for our team?" delay={100} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<>{!data.noQuestions&&<TextArea value={data.comments||""} onChange={v=>setData(d=>({...d,comments:v}))} placeholder="Any questions, comments, or things we should know..." delay={150} />}<FadeIn delay={250}><div role="button" tabIndex={0} onClick={()=>setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}))} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setData(d=>({...d,noQuestions:!d.noQuestions,comments:""}));}}} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:data.noQuestions?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:data.noQuestions?T.blueLight:"#fff",color:data.noQuestions?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:data.noQuestions?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{data.noQuestions&&"✓ "}Nope, all good!</div></FadeIn>{(data.noQuestions||(data.comments||"").trim())&&<ContinueButton onClick={next} label="Submit" delay={200} />}</>}</>;
 
-    case "done": return <><Confetti /><RevealText text={`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text="We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon." delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<FadeIn delay={300}><div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p></div></FadeIn>}</>;
+    case "done": {
+      const failed=receiptId==='FAILED';
+      return <>{!failed&&<Confetti />}<RevealText text={failed?`We're experiencing technical difficulties.`:`You're all set, ${firstName}!`} delay={300} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<RevealText text={failed?"Please try again later, or contact us directly.":"We'll get in touch soon to get you onboarded. You should get a call during normal office hours very soon."} delay={200} onComplete={()=>markTextDone("b")} className="sub-text" />}{textsDone.b&&<FadeIn delay={300}>{failed?<div style={{marginTop:24,padding:"24px 28px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:16,fontFamily:FONT,margin:0,lineHeight:1.6}}>Call us at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> or email <a href="mailto:info@advancedcb.com" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>info@advancedcb.com</a></p><div style={{marginTop:16,padding:"14px 18px",background:"#fff",borderRadius:10,border:`1px solid ${T.border}`}}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,margin:0}}>Your info: {data.fullName} | {data.email} | {data.phone}</p></div></div>:<div style={{marginTop:24,padding:"24px 28px",background:T.blueLight,border:`1.5px solid ${T.blueMid}`,borderRadius:14,display:"flex",alignItems:"center",gap:14}}><div style={{width:40,height:40,borderRadius:50,background:T.blue,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 7" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><div><p style={{color:T.blue,fontSize:17,fontFamily:FONT,margin:0,fontWeight:700}}>Welcome to the Advanced Collection Bureau family.</p>{receiptId&&receiptId!=='FAILED'&&<p style={{color:T.textMid,fontSize:13,fontFamily:FONT,margin:"6px 0 0",fontWeight:400}}>Your reference number: {receiptId}</p>}</div></div>}</FadeIn>}</>;
+    }
 
     default: return null;
   }
@@ -400,6 +406,10 @@ function LeadIntakeForm(){
   const trackingData=useRef({location:"Loading...",device:"",referrer:"",timezone:"",clarityUrl:""});
   const hasContactInfo=useRef(false);
   const formSubmitted=useRef(false);
+  const sessionId=useRef(crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:r&3|8).toString(16);}));
+  const formStartedAt=useRef(new Date().toISOString());
+  const apiHealthy=useRef(false);
+  const [receiptId,setReceiptId]=useState(null);
 
   // Session save/restore
   useEffect(()=>{
@@ -437,6 +447,9 @@ function LeadIntakeForm(){
       fetch("https://ipinfo.io/json?token=").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;if(d.timezone)trackingData.current.timezone=d.timezone;}).catch(()=>{trackingData.current.location="(Could not determine)";});
     });
 
+    // Health check for Lead Console API
+    fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';}).catch(()=>{apiHealthy.current=false;});
+
     // Microsoft Clarity session URL
     try{
       if(window.parent&&window.parent.clarity){
@@ -453,20 +466,32 @@ function LeadIntakeForm(){
     }catch(e){}
   },[]);
 
+  // Partial capture helper
+  const sendPartial=useCallback((stepName,fields)=>{
+    if(!apiHealthy.current)return;
+    fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href}})}).catch(()=>{});
+  },[]);
+
   // Abandonment: fire partial submit on page unload if we have contact info
   useEffect(()=>{
     const handleUnload=()=>{
-      if(hasContactInfo.current&&!formSubmitted.current&&FORMSUBMIT_ID){
-        const t=trackingData.current;
-        const partial={
-          "_subject":"[PARTIAL] "+data.fullName+(data.companyName?" - "+data.companyName:"")+" (abandoned at: "+flow[stepIndex]+")",
-          "Name":data.fullName,"Company":data.noCompany?"(Independent)":data.companyName,
-          "Email":data.email,"Phone":data.phone,
-          "Last Step":flow[stepIndex],"Location":t.location,"Device":t.device,
-          _captcha:"false",_template:"table",_replyto:data.email
-        };
-        if(CC_EMAILS)partial._cc=CC_EMAILS;
-        navigator.sendBeacon(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,new Blob([JSON.stringify(partial)],{type:"application/json"}));
+      if(hasContactInfo.current&&!formSubmitted.current){
+        // Send partial to Lead Console API
+        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true}});
+        if(apiHealthy.current){navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/partial',new Blob([abandonPayload],{type:'application/json'}));}
+        // Also still send to FormSubmit as backup
+        if(FORMSUBMIT_ID){
+          const t=trackingData.current;
+          const partial={
+            "_subject":"[PARTIAL] "+data.fullName+(data.companyName?" - "+data.companyName:"")+" (abandoned at: "+flow[stepIndex]+")",
+            "Name":data.fullName,"Company":data.noCompany?"(Independent)":data.companyName,
+            "Email":data.email,"Phone":data.phone,
+            "Last Step":flow[stepIndex],"Location":t.location,"Device":t.device,
+            _captcha:"false",_template:"table",_replyto:data.email
+          };
+          if(CC_EMAILS)partial._cc=CC_EMAILS;
+          navigator.sendBeacon(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,new Blob([JSON.stringify(partial)],{type:"application/json"}));
+        }
       }
     };
     window.addEventListener("beforeunload",handleUnload);
@@ -476,16 +501,14 @@ function LeadIntakeForm(){
   const markTextDone=useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));},[]);
   const currentStep=flow[stepIndex]||"done";
 
-  const submitForm=useCallback((formData)=>{
-    formSubmitted.current=true;
-    try{sessionStorage.removeItem("acb_form_progress");}catch(e){}
+  // Build FormSubmit email payload (used by primary submission and backup)
+  const buildFormSubmitPayload=useCallback((formData)=>{
     const t=trackingData.current;
     const now=new Date();
     const estTime=now.toLocaleString("en-US",{timeZone:"America/New_York",weekday:"short",year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit",hour12:true})+" EST";
     let websiteVal="(No website)";
     if(!formData.noWebsite&&formData.companyWebsite){let url=formData.companyWebsite;if(!/^https?:\/\//i.test(url))url="https://"+url;websiteVal=`<a href="${url}">${formData.companyWebsite}</a>`;}
     const isRes=formData.debtTypes.includes("Residential Rental Debt");
-
     const payload={"Name":formData.fullName,"Company":formData.noCompany?"(Independent owner)":formData.companyName,"Email":formData.email,"Phone Number":formData.phone,"Website":websiteVal,"Debt Types":formData.debtTypes.join(", ")+(formData.customDebtType?` (${formData.customDebtType})`:""),"Debts Ready Now":formData.debtsNow||"(Not answered)","Prior Collection Agency":formData.priorAgency||"(Not answered)","States":formData.states.join(", ")};
     if(isRes){
       payload["Ownership"]=formData.ownershipType+(formData.ownershipType==="We own and manage for others"?` (${formData.ownPercent}% own / ${100-formData.ownPercent}% manage)`:"");
@@ -506,21 +529,96 @@ function LeadIntakeForm(){
     payload._subject=`${formData.fullName} | ${formData.noCompany?"Independent":formData.companyName} | Units: ${formData.totalUnits||"N/A"} | Avg Rent: ${formatRent(formData.avgRent||0)} | ${formData.phone} | ${formData.email}`;
     payload._captcha="false";payload._template="table";payload._replyto=formData.email;
     if(CC_EMAILS)payload._cc=CC_EMAILS;
-
-    console.log("Form submitted:",payload);
-
-    // Primary: send to ACB Lead Console (most important — creates the lead)
-    fetch("https://www.advancedcb.app/api/webhooks/intake-form",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(formData)}).then(r=>r.json()).then(d=>console.log("Lead Console response:",d)).catch(err=>console.error("Lead Console error:",err));
-
-    // Secondary: also send email notification via FormSubmit (fire and forget)
-    if(FORMSUBMIT_ID){fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)}).catch(()=>{});}
+    return payload;
   },[]);
+
+  const submitForm=useCallback(async(formData)=>{
+    formSubmitted.current=true;
+    try{sessionStorage.removeItem("acb_form_progress");}catch(e){}
+
+    const submissionId=crypto.randomUUID?crypto.randomUUID():Date.now().toString()+Math.random().toString(36);
+
+    // Dedup check — if already submitted this session, skip
+    if(sessionStorage.getItem('acb_submission_id')){
+      setReceiptId(sessionStorage.getItem('acb_receipt_id')||null);
+      return;
+    }
+
+    const ingestPayload={
+      submission_id:submissionId,
+      session_id:sessionId.current,
+      submitted_at:new Date().toISOString(),
+      form_version:FORM_VERSION,
+      is_partial:false,
+      partial_step:null,
+      fields:{...formData},
+      metadata:{
+        source:'acb-intake-form',
+        source_page:window.location.href,
+        user_agent:navigator.userAgent,
+        referrer:document.referrer||null,
+        utm_source:new URLSearchParams(window.location.search).get('utm_source'),
+        utm_medium:new URLSearchParams(window.location.search).get('utm_medium'),
+        utm_campaign:new URLSearchParams(window.location.search).get('utm_campaign'),
+        session_id:sessionId.current,
+        form_started_at:formStartedAt.current,
+        form_completed_at:new Date().toISOString(),
+        location:trackingData.current.location,
+        device:trackingData.current.device,
+        timezone:trackingData.current.timezone,
+        clarity_url:trackingData.current.clarityUrl
+      }
+    };
+
+    console.log("Form submitted — attempting Lead Console ingest:",ingestPayload);
+
+    // ATTEMPT 1: Direct API
+    try{
+      const res=await fetch(LEAD_CONSOLE_API+'/api/leads/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify(ingestPayload)});
+      if(res.ok){const result=await res.json();sessionStorage.setItem('acb_submission_id',submissionId);sessionStorage.setItem('acb_receipt_id',result.receipt_id||'');setReceiptId(result.receipt_id||null);console.log("Lead Console ingest success:",result);return;}
+      throw new Error('API returned '+res.status);
+    }catch(err){console.error('Primary submission failed:',err);}
+
+    // ATTEMPT 2: Retry after 2s
+    try{
+      await new Promise(r=>setTimeout(r,2000));
+      const res=await fetch(LEAD_CONSOLE_API+'/api/leads/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify(ingestPayload)});
+      if(res.ok){const result=await res.json();sessionStorage.setItem('acb_submission_id',submissionId);sessionStorage.setItem('acb_receipt_id',result.receipt_id||'');setReceiptId(result.receipt_id||null);console.log("Lead Console retry success:",result);return;}
+      throw new Error('Retry returned '+res.status);
+    }catch(err){console.error('Retry failed:',err);}
+
+    // ATTEMPT 3: FormSubmit.co backup
+    try{
+      const emailPayload=buildFormSubmitPayload(formData);
+      if(FORMSUBMIT_ID){await fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(emailPayload)});}
+      sessionStorage.setItem('acb_submission_id',submissionId);
+      setReceiptId(null); // No receipt from backup
+      console.log("FormSubmit backup sent");
+      return;
+    }catch(err){
+      console.error('Backup also failed:',err);
+      // Last resort: save to localStorage
+      try{localStorage.setItem('acb_unsent_lead',JSON.stringify(ingestPayload));}catch(e){}
+      setReceiptId('FAILED');
+    }
+  },[buildFormSubmitPayload]);
 
   const next=useCallback(()=>{
     setTextsDone({});
     const curStep=flow[stepIndex];
-    // Mark contact info collected for abandonment tracking
-    if(curStep==="contact")hasContactInfo.current=true;
+    // Mark contact info collected for abandonment tracking + send partial
+    if(curStep==="contact"){
+      hasContactInfo.current=true;
+      sendPartial('contact_info',{full_name:data.fullName,first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,company_website:data.noWebsite?'':data.companyWebsite});
+    }
+    // Send partial after debt types selection
+    if(curStep==="debtTypes"){
+      sendPartial('debt_types',{full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,debt_types:data.debtTypes,custom_debt_type:data.customDebtType});
+    }
+    // Send partial after units (portfolio details)
+    if(curStep==="units"){
+      sendPartial('portfolio_details',{full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,debt_types:data.debtTypes,states:data.states,ownership_type:data.ownershipType,total_units:data.totalUnits});
+    }
     // Branch after debtsNow
     if(curStep==="debtsNow"){
       if(data.debtTypes.includes("Residential Rental Debt")){setFlow(RESIDENTIAL_FLOW);setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow")+1);}
@@ -530,7 +628,7 @@ function LeadIntakeForm(){
     if(curStep==="comments")submitForm(data);
     setStepIndex(i=>i+1);
     window.scrollTo({top:0,behavior:"smooth"});
-  },[data,submitForm,flow,stepIndex]);
+  },[data,submitForm,sendPartial,flow,stepIndex]);
 
   const goTo=useCallback((stepName)=>{
     setTextsDone({});
@@ -571,7 +669,7 @@ function LeadIntakeForm(){
     `}</style>
     <ProgressBar progress={progress} />
     <div className="form-outer">
-      <div className="step-card"><StepContent key={currentStep+stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} /></div>
+      <div className="step-card"><StepContent key={currentStep+stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} receiptId={receiptId} /></div>
       {stepIndex>0&&currentStep!=="done"&&<button className="back-btn" onClick={back}>Back</button>}
     </div>
   </>;
