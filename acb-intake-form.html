@@ -29,7 +29,7 @@
      * ============================================================
      */
     const FORMSUBMIT_ID = "dfeca48013a9d6519627f295dd99503c";
-    const CC_EMAILS = "";
+    const CC_EMAILS = "advancedcollectionbureau@gmail.com";
     const CLARITY_PROJECT_ID = "qo6gcqjdc7";
     const LEAD_CONSOLE_API = 'https://www.advancedcb.app';
     const FORM_API_KEY = 'acb-form-secret-2026';
@@ -576,13 +576,14 @@ function LeadIntakeForm(){
     };
 
     console.log("Form submitted — attempting Lead Console ingest:",ingestPayload);
+    const errors=[];
 
     // ATTEMPT 1: Direct API
     try{
       const res=await fetch(LEAD_CONSOLE_API+'/api/leads/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify(ingestPayload)});
       if(res.ok){const result=await res.json();sessionStorage.setItem('acb_submission_id',submissionId);sessionStorage.setItem('acb_receipt_id',result.receipt_id||'');setReceiptId(result.receipt_id||null);console.log("Lead Console ingest success:",result);return;}
       throw new Error('API returned '+res.status);
-    }catch(err){console.error('Primary submission failed:',err);}
+    }catch(err){errors.push({attempt:1,error:err.message||String(err),time:new Date().toISOString()});console.error('Primary submission failed:',err);}
 
     // ATTEMPT 2: Retry after 2s
     try{
@@ -590,18 +591,23 @@ function LeadIntakeForm(){
       const res=await fetch(LEAD_CONSOLE_API+'/api/leads/ingest',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify(ingestPayload)});
       if(res.ok){const result=await res.json();sessionStorage.setItem('acb_submission_id',submissionId);sessionStorage.setItem('acb_receipt_id',result.receipt_id||'');setReceiptId(result.receipt_id||null);console.log("Lead Console retry success:",result);return;}
       throw new Error('Retry returned '+res.status);
-    }catch(err){console.error('Retry failed:',err);}
+    }catch(err){errors.push({attempt:2,error:err.message||String(err),time:new Date().toISOString()});console.error('Retry failed:',err);}
 
     // ATTEMPT 3: FormSubmit.co backup
     try{
       const emailPayload=buildFormSubmitPayload(formData);
-      if(FORMSUBMIT_ID){await fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(emailPayload)});}
+      if(FORMSUBMIT_ID){const fsRes=await fetch(`https://formsubmit.co/ajax/${FORMSUBMIT_ID}`,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(emailPayload)});if(!fsRes.ok)throw new Error('FormSubmit returned '+fsRes.status);}
       sessionStorage.setItem('acb_submission_id',submissionId);
       setReceiptId(null); // No receipt from backup
       console.log("FormSubmit backup sent");
       return;
     }catch(err){
+      errors.push({attempt:3,error:err.message||String(err),time:new Date().toISOString()});
       console.error('Backup also failed:',err);
+      // Report total failure to Lead Console
+      const failurePayload={submission_id:submissionId,session_id:sessionId.current,error_message:'All 3 submission attempts failed',errors:errors,form_data_summary:{name:formData.fullName,email:formData.email,phone:formData.phone,company:formData.companyName},form_version:FORM_VERSION};
+      try{navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/report-failure',new Blob([JSON.stringify(failurePayload)],{type:'application/json'}));}catch(e){}
+      try{fetch(LEAD_CONSOLE_API+'/api/leads/report-failure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(failurePayload)}).catch(()=>{});}catch(e){}
       // Last resort: save to localStorage
       try{localStorage.setItem('acb_unsent_lead',JSON.stringify(ingestPayload));}catch(e){}
       setReceiptId('FAILED');
