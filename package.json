@@ -1,0 +1,18 @@
+{
+  "name": "acb-form",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ACB lead intake form. JSX source in src/app.jsx is pre-compiled to app.js; React is self-hosted in vendor/ (no CDN, no in-browser Babel).",
+  "scripts": {
+    "build": "babel src/app.jsx --presets @babel/preset-react --out-file app.js",
+    "vendor": "cp node_modules/react/umd/react.production.min.js vendor/react.production.min.js && cp node_modules/react-dom/umd/react-dom.production.min.js vendor/react-dom.production.min.js",
+    "setup": "npm install && npm run vendor && npm run build"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.0.0",
+    "@babel/core": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
