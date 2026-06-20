@@ -78,3 +78,36 @@ over to Webflow Cloud, this can become the single source of truth.
   form uses no APIs removed in React 19).
 - Do a real **submit test** after the first deploy and confirm the lead lands in
   the ACB Lead Console — Worker runtime + live API calls can't be verified offline.
+
+## Site navbar + footer (DevLink)
+
+The page is wrapped in `src/layouts/SiteLayout.astro`, which renders a navbar
+above and a footer below the form, so visitors get the full site chrome and can
+navigate away — they're not locked into the form.
+
+Right now those are **placeholders** (`src/components/Navbar.astro` and
+`src/components/Footer.astro`) — real links back to advancedcb.com, but not your
+designed nav/footer. To use the real ones via DevLink:
+
+1. Enable **DevLink** for your Webflow site and export your Navbar + Footer
+   components. Follow Webflow's guide:
+   https://developers.webflow.com/webflow-cloud/getting-started-with-devlink
+   (DevLink authenticates with your Webflow account and writes the components into
+   this app, e.g. a `src/devlink/` folder. That step runs with your Webflow login,
+   so it's yours to run — it can't be done from this repo alone.)
+2. In `src/layouts/SiteLayout.astro`, swap the placeholder imports for the DevLink
+   components (use the real names/paths DevLink generates):
+
+       import Navbar from "../devlink/Navbar";
+       import Footer from "../devlink/Footer";
+
+3. If your navbar is interactive (mobile hamburger, dropdowns), render it with a
+   client directive so Webflow's interactions run: `<Navbar client:load />`. The
+   footer is usually static and needs none.
+4. Re-run the DevLink sync whenever you change the nav/footer in Webflow.
+5. `npm run build` to confirm, then redeploy.
+
+Spacing note: the form area uses `min-height: 100vh` (it was designed as a
+standalone page). With a navbar + footer added you may want to reduce that so the
+footer sits closer under the form — tune `.form-outer` in the form component if the
+vertical spacing feels off.

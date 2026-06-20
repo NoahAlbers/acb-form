@@ -1,0 +1,52 @@
+---
+/*
+ * PLACEHOLDER navbar — replace with your DevLink-exported Webflow Navbar.
+ *
+ * This exists so the Cloud page is never a dead-end before DevLink is wired up.
+ * Once you run the DevLink sync (see README "Site navbar + footer via DevLink"),
+ * swap this for your real component:
+ *   import Navbar from "../<devlink-output>/Navbar"; // (likely a React component)
+ * and render it in SiteLayout.astro. If it has a mobile hamburger menu, render it
+ * with client:load so the Webflow interactions work.
+ */
+const SITE = "https://www.advancedcb.com";
+const links = [
+  { label: "Home", href: `${SITE}/` },
+  { label: "Contact", href: `${SITE}/contact` },
+];
+---
+
+<header class="nav">
+  <a class="brand" href={SITE}>Advanced Collection Bureau</a>
+  <nav class="links">
+    {links.map((l) => <a href={l.href}>{l.label}</a>)}
+    <a class="phone" href="tel:3216334999">(321) 633-4999</a>
+  </nav>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 24px;
+    background: #fff;
+    border-bottom: 1px solid #e2e4ec;
+    font-family: "Outfit", sans-serif;
+  }
+  .brand { font-weight: 800; color: #1a1a2e; text-decoration: none; letter-spacing: -0.02em; }
+  .links { display: flex; align-items: center; gap: 22px; }
+  .links a { color: #4a4a68; text-decoration: none; font-weight: 500; font-size: 15px; }
+  .links a:hover { color: #3d5af1; }
+  .links .phone { color: #3d5af1; font-weight: 700; }
+  @media (max-width: 560px) {
+    .nav { padding: 12px 16px; }
+    .brand { font-size: 15px; }
+    .links { gap: 14px; }
+    .links a { font-size: 13px; }
+  }
+</style>

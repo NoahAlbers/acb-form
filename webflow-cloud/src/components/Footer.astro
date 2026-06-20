@@ -1,0 +1,35 @@
+---
+/*
+ * PLACEHOLDER footer — replace with your DevLink-exported Webflow Footer.
+ * See README "Site navbar + footer via DevLink". Swap the import in
+ * SiteLayout.astro for your real component once DevLink has synced it.
+ */
+const SITE = "https://www.advancedcb.com";
+const year = new Date().getFullYear();
+const links = [
+  { label: "Home", href: `${SITE}/` },
+  { label: "Contact", href: `${SITE}/contact` },
+  { label: "Privacy", href: `${SITE}/privacy` },
+];
+---
+
+<footer class="footer">
+  <nav class="footer-links">
+    {links.map((l) => <a href={l.href}>{l.label}</a>)}
+  </nav>
+  <p class="copy">© {year} Advanced Collection Bureau. All rights reserved.</p>
+</footer>
+
+<style>
+  .footer {
+    background: #1a1a2e;
+    color: #c9cbe0;
+    padding: 32px 24px;
+    text-align: center;
+    font-family: "Outfit", sans-serif;
+  }
+  .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; margin-bottom: 14px; }
+  .footer-links a { color: #c9cbe0; text-decoration: none; font-weight: 500; font-size: 14px; }
+  .footer-links a:hover { color: #fff; }
+  .copy { font-size: 13px; color: #8889a0; }
+</style>
