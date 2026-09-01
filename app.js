@@ -2747,7 +2747,12 @@ function LeadIntakeForm() {
         fields: fields,
         metadata: {
           source: 'acb-intake-form',
-          source_page: window.location.href
+          source_page: window.location.href,
+          user_agent: navigator.userAgent,
+          device: trackingData.current.device,
+          location: trackingData.current.location,
+          timezone: trackingData.current.timezone,
+          referrer: trackingData.current.referrer
         }
       })
     }).catch(() => {});
@@ -2775,7 +2780,12 @@ function LeadIntakeForm() {
           metadata: {
             source: 'acb-intake-form',
             source_page: window.location.href,
-            abandoned: true
+            abandoned: true,
+            user_agent: navigator.userAgent,
+            device: trackingData.current.device,
+            location: trackingData.current.location,
+            timezone: trackingData.current.timezone,
+            referrer: trackingData.current.referrer
           }
         });
         if (apiHealthy.current) {

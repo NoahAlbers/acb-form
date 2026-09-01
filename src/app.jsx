@@ -502,7 +502,7 @@ function LeadIntakeForm(){
   const sendPartial=useCallback((stepName,fields)=>{
     if(honeypotRef.current&&honeypotRef.current.value)return; // honeypot: skip partial/abandon leads for bots
     if(!apiHealthy.current)return;
-    fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href}})}).catch(()=>{});
+    fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer}})}).catch(()=>{});
   },[]);
 
   // Abandonment: fire partial submit on page unload if we have contact info
@@ -510,7 +510,7 @@ function LeadIntakeForm(){
     const handleUnload=()=>{
       if(hasContactInfo.current&&!formSubmitted.current){
         // Send partial to Lead Console API
-        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true}});
+        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer}});
         if(apiHealthy.current){navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/partial',new Blob([abandonPayload],{type:'application/json'}));}
         // Also still send to FormSubmit as backup
         if(FORMSUBMIT_ID){
