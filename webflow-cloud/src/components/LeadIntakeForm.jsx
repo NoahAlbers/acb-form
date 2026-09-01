@@ -390,12 +390,61 @@ function LeadIntakeForm(){
   const apiHealthy=useRef(false);
   const [receiptId,setReceiptId]=useState(null);
 
-  // Session save/restore
+  // Session save/restore. A ?resume=<token> in our URL (or the parent page's
+  // URL, read via document.referrer since the iframe is cross-origin) comes
+  // from a recapture email: fetch the saved answers from the Lead Console,
+  // prefill, reuse the original session id, and drop them at their last step.
   useEffect(()=>{
-    try{
-      const saved=sessionStorage.getItem("acb_form_progress");
-      if(saved){const p=JSON.parse(saved);if(p.data&&p.stepIndex!=null&&p.flow){setData(p.data);setStepIndex(p.stepIndex);setFlow(p.flow);setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});}}
-    }catch(e){}
+    const restoreLocal=()=>{
+      try{
+        const saved=sessionStorage.getItem("acb_form_progress");
+        if(saved){const p=JSON.parse(saved);if(p.data&&p.stepIndex!=null&&p.flow){setData(p.data);setStepIndex(p.stepIndex);setFlow(p.flow);setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});}}
+      }catch(e){}
+    };
+    let token=null;
+    try{token=new URLSearchParams(window.location.search).get('resume');}catch(e){}
+    if(!token){try{if(document.referrer){token=new URLSearchParams(new URL(document.referrer).search).get('resume');}}catch(e){}}
+    if(!token){restoreLocal();return;}
+
+    fetch(LEAD_CONSOLE_API+'/api/leads/resume?token='+encodeURIComponent(token))
+      .then(r=>r.ok?r.json():null)
+      .then(res=>{
+        if(!res||!res.success){restoreLocal();return;}
+        if(res.session_id)sessionId.current=res.session_id;
+        const f=res.fields||{};
+        setData(d=>{
+          const nd={...d};
+          if(f.full_name)nd.fullName=String(f.full_name);
+          if(f.email)nd.email=String(f.email);
+          if(f.phone)nd.phone=String(f.phone);
+          if(f.company_name){if(f.company_name==='(Independent)'){nd.noCompany=true;}else{nd.companyName=String(f.company_name);}}
+          if(f.company_website)nd.companyWebsite=String(f.company_website);
+          if(Array.isArray(f.debt_types))nd.debtTypes=f.debt_types;
+          if(f.custom_debt_type)nd.customDebtType=String(f.custom_debt_type);
+          if(Array.isArray(f.states))nd.states=f.states;
+          if(f.ownership_type)nd.ownershipType=String(f.ownership_type);
+          if(f.total_units)nd.totalUnits=String(f.total_units);
+          return nd;
+        });
+        // Map the recorded checkpoint to the step they should land on
+        let stepName='name';
+        const s=String(res.step||'');
+        if(s.indexOf('abandoned_at_')===0)stepName=s.slice('abandoned_at_'.length);
+        else if(s==='contact_info')stepName='priorAgency';
+        else if(s==='debt_types')stepName='debtsNow';
+        else if(s==='portfolio_details')stepName='rentalTypes';
+        const flows=[RESIDENTIAL_FLOW,DEDICATED_TEAM_FLOW,NON_RES_SHORT_FLOW];
+        let targetFlow=RESIDENTIAL_FLOW;
+        for(let i=0;i<flows.length;i++){if(flows[i].indexOf(stepName)!==-1){targetFlow=flows[i];break;}}
+        let idx=targetFlow.indexOf(stepName);
+        if(idx<0)idx=1;
+        if(targetFlow[idx]==='done')idx=Math.max(0,idx-1);
+        setFlow(targetFlow);
+        setStepIndex(idx);
+        setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});
+        if(f.email||f.phone)hasContactInfo.current=true;
+      })
+      .catch(()=>{restoreLocal();});
   },[]);
   useEffect(()=>{
     if(flow[stepIndex]==="done")return;
