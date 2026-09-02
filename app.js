@@ -16,6 +16,157 @@ const CLARITY_PROJECT_ID = "qo6gcqjdc7";
 const LEAD_CONSOLE_API = 'https://www.advancedcb.app';
 const FORM_API_KEY = 'acb-form-secret-2026';
 const FORM_VERSION = '1.0';
+
+/* ═══ FLOW TRACKING + EXPERIMENTS ═══
+ * Every step change, pitch screen, submit, and abandon is batched to the
+ * Lead Console so the Form Funnel report and A/B experiments have data.
+ * Variants are assigned deterministically from the session id, so a
+ * visitor always sees the same variant, without a server round trip.
+ */
+const TRACK = {
+  queue: [],
+  variants: {},
+  flags: {},
+  stepEnteredAt: Date.now(),
+  sessionId: null,
+  started: Date.now(),
+  context: {}
+};
+function trackHash(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 10000;
+}
+function assignVariants(experiments, sessionId) {
+  const variants = {},
+    flags = {};
+  (experiments || []).forEach(exp => {
+    if (!exp || exp.status !== 'running' || !Array.isArray(exp.variants) || !exp.variants.length) return;
+    const total = exp.variants.reduce((a, v) => a + (Number(v.weight) || 0), 0) || exp.variants.length;
+    let roll = trackHash(sessionId + ':' + exp.key) / 10000 * total,
+      chosen = exp.variants[exp.variants.length - 1];
+    for (const v of exp.variants) {
+      const w = Number(v.weight) || (total === exp.variants.length ? 1 : 0);
+      if (roll < w) {
+        chosen = v;
+        break;
+      }
+      roll -= w;
+    }
+    variants[exp.key] = chosen.key;
+    Object.assign(flags, chosen.flags || {});
+  });
+  return {
+    variants,
+    flags
+  };
+}
+function track(type, step, meta) {
+  if (PREVIEW.active) return;
+  TRACK.queue.push({
+    type,
+    step: step || null,
+    at: new Date().toISOString(),
+    elapsed_ms: Date.now() - TRACK.started,
+    meta: meta || null
+  });
+  if (TRACK.queue.length >= 20) flushTrack();
+}
+function flushTrack() {
+  if (PREVIEW.active || !TRACK.queue.length || !TRACK.sessionId) return;
+  const events = TRACK.queue.splice(0, TRACK.queue.length);
+  const body = JSON.stringify({
+    session_id: TRACK.sessionId,
+    form_version: FORM_VERSION,
+    context: Object.assign({
+      variants: TRACK.variants
+    }, TRACK.context),
+    events
+  });
+  try {
+    fetch(LEAD_CONSOLE_API + '/api/form/events', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-ACB-Form-Key': FORM_API_KEY
+      },
+      body
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+/* ═══ LAYOUT VARIANTS + PREVIEW MODE ═══
+ * Three layout flags can be combined by an experiment variant:
+ *   skipPitchScreens  - no selling-point screens
+ *   fastTransitions   - reveals and fades run about 3x faster
+ *   groupedQuestions  - 2-4 questions per card instead of one
+ * Opening the form with ?ab=<variant key> (and optionally
+ * &flags=skipPitchScreens,fastTransitions) forces a variant for previewing.
+ * Preview mode never writes to the Lead Console: no partial leads, no
+ * heartbeats, no flow events, and Submit does not create a lead.
+ */
+const PRESET_VARIANTS = {
+  classic: {},
+  no_pitch: {
+    skipPitchScreens: true
+  },
+  fast: {
+    fastTransitions: true
+  },
+  no_pitch_fast: {
+    skipPitchScreens: true,
+    fastTransitions: true
+  },
+  grouped: {
+    groupedQuestions: true
+  },
+  fast_grouped: {
+    fastTransitions: true,
+    groupedQuestions: true
+  },
+  no_pitch_grouped: {
+    skipPitchScreens: true,
+    groupedQuestions: true
+  },
+  no_pitch_fast_grouped: {
+    skipPitchScreens: true,
+    fastTransitions: true,
+    groupedQuestions: true
+  }
+};
+const PREVIEW = {
+  active: false,
+  label: null
+};
+(function () {
+  try {
+    const own = new URLSearchParams(window.location.search);
+    let ref = null;
+    try {
+      if (document.referrer) ref = new URLSearchParams(new URL(document.referrer).search);
+    } catch (e) {}
+    const get = k => own.get(k) || ref && ref.get(k) || null;
+    const ab = get('ab'),
+      flagsParam = get('flags');
+    if (!ab && !flagsParam) return;
+    const flags = {};
+    if (ab && PRESET_VARIANTS[ab]) Object.assign(flags, PRESET_VARIANTS[ab]);
+    (flagsParam || '').split(',').map(x => x.trim()).filter(Boolean).forEach(k => {
+      flags[k] = true;
+    });
+    PREVIEW.active = true;
+    PREVIEW.label = ab || 'custom';
+    TRACK.flags = flags;
+    TRACK.variants = {
+      preview: PREVIEW.label
+    };
+  } catch (e) {}
+})();
+const SPEED = () => TRACK.flags.fastTransitions ? 0.35 : 1;
 const STATE_NAMES = {
   "MA": "Massachusetts",
   "MN": "Minnesota",
@@ -230,7 +381,8 @@ function RevealText({
 }) {
   const [v, setV] = useState(false);
   const fired = useRef(false);
-  const d = slow ? delay + 200 : delay;
+  const sp = SPEED();
+  const d = Math.round((slow ? delay + 200 : delay) * sp);
   useEffect(() => {
     const t = setTimeout(() => setV(true), d);
     return () => clearTimeout(t);
@@ -238,16 +390,17 @@ function RevealText({
   useEffect(() => {
     if (v && onComplete && !fired.current) {
       fired.current = true;
-      const t = setTimeout(onComplete, slow ? 600 : 300);
+      const t = setTimeout(onComplete, Math.round((slow ? 600 : 300) * sp));
       return () => clearTimeout(t);
     }
   }, [v, onComplete]);
+  const dur = ((slow ? 0.8 : 0.5) * sp).toFixed(2);
   return /*#__PURE__*/React.createElement("p", {
     className: className,
     style: {
       opacity: v ? 1 : 0,
       transform: v ? "translateY(0)" : "translateY(10px)",
-      transition: `opacity ${slow ? 0.8 : 0.5}s ease, transform ${slow ? 0.8 : 0.5}s ease`
+      transition: `opacity ${dur}s ease, transform ${dur}s ease`
     }
   }, text);
 }
@@ -257,15 +410,17 @@ function FadeIn({
   slow = false
 }) {
   const [v, setV] = useState(false);
+  const sp = SPEED();
   useEffect(() => {
-    const t = setTimeout(() => setV(true), slow ? delay + 200 : delay);
+    const t = setTimeout(() => setV(true), Math.round((slow ? delay + 200 : delay) * sp));
     return () => clearTimeout(t);
   }, [delay, slow]);
+  const dur = ((slow ? 0.7 : 0.45) * sp).toFixed(2);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       opacity: v ? 1 : 0,
       transform: v ? "translateY(0)" : "translateY(12px)",
-      transition: `opacity ${slow ? 0.7 : 0.45}s ease, transform ${slow ? 0.7 : 0.45}s ease`
+      transition: `opacity ${dur}s ease, transform ${dur}s ease`
     }
   }, children);
 }
@@ -589,7 +744,7 @@ function StatCounter({
 }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setShow(true), delay);
+    const t = setTimeout(() => setShow(true), Math.round(delay * SPEED()));
     return () => clearTimeout(t);
   }, [delay]);
   return /*#__PURE__*/React.createElement("div", {
@@ -2113,48 +2268,64 @@ function StepContent({
         })));
       }
     case "listings":
-      return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SellSection, {
+      {
+        const question = /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(RevealText, {
+          text: "Where do you list your rentals?",
+          delay: 100,
+          onComplete: () => markTextDone("list_q"),
+          className: "hero-text"
+        }), textsDone.list_q && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MultiSelect, {
+          options: LISTING_SITES,
+          selected: data.listingSites,
+          onToggle: opt => setData(d => ({
+            ...d,
+            listingSites: d.listingSites.includes(opt) ? d.listingSites.filter(x => x !== opt) : [...d.listingSites, opt]
+          })),
+          delay: 200
+        }), data.listingSites.includes("Other") && /*#__PURE__*/React.createElement(TextInput, {
+          value: data.customListing,
+          onChange: v => setData(d => ({
+            ...d,
+            customListing: v
+          })),
+          placeholder: "Where else do you list?",
+          delay: 100
+        }), /*#__PURE__*/React.createElement(ContinueButton, {
+          onClick: next,
+          delay: 350,
+          disabled: data.listingSites.length === 0
+        })));
+        if (TRACK.flags.skipPitchScreens) return question;
+        return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SellSection, {
+          lines: [{
+            text: "Think of us like an extension of your own team."
+          }, {
+            text: "You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."
+          }],
+          affirmLabel: "I like the sound of that",
+          onContinue: () => markTextDone("sell_done"),
+          markTextDone: markTextDone,
+          textsDone: textsDone
+        }), textsDone.sell_done && /*#__PURE__*/React.createElement("div", {
+          style: {
+            marginTop: 32,
+            paddingTop: 28,
+            borderTop: `1px solid ${T.border}`
+          }
+        }, question));
+      }
+    case "sellTeamExtension":
+      return /*#__PURE__*/React.createElement(SellSection, {
         lines: [{
           text: "Think of us like an extension of your own team."
         }, {
           text: "You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."
         }],
         affirmLabel: "I like the sound of that",
-        onContinue: () => markTextDone("sell_done"),
+        onContinue: next,
         markTextDone: markTextDone,
         textsDone: textsDone
-      }), textsDone.sell_done && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-        style: {
-          marginTop: 32,
-          paddingTop: 28,
-          borderTop: `1px solid ${T.border}`
-        }
-      }, /*#__PURE__*/React.createElement(RevealText, {
-        text: "Where do you list your rentals?",
-        delay: 100,
-        onComplete: () => markTextDone("list_q"),
-        className: "hero-text"
-      })), textsDone.list_q && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MultiSelect, {
-        options: LISTING_SITES,
-        selected: data.listingSites,
-        onToggle: opt => setData(d => ({
-          ...d,
-          listingSites: d.listingSites.includes(opt) ? d.listingSites.filter(x => x !== opt) : [...d.listingSites, opt]
-        })),
-        delay: 200
-      }), data.listingSites.includes("Other") && /*#__PURE__*/React.createElement(TextInput, {
-        value: data.customListing,
-        onChange: v => setData(d => ({
-          ...d,
-          customListing: v
-        })),
-        placeholder: "Where else do you list?",
-        delay: 100
-      }), /*#__PURE__*/React.createElement(ContinueButton, {
-        onClick: next,
-        delay: 350,
-        disabled: data.listingSites.length === 0
-      }))));
+      });
     case "pmSoftware":
       return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(RevealText, {
         text: "What property management software do you use?",
@@ -2433,15 +2604,658 @@ function StepContent({
   }
 }
 
+/* ═══ GROUPED QUESTIONS (layout experiment) ═══
+ * Several questions on one card with one Continue button. Each question uses
+ * the same widget as its single-step version, without the typewriter reveal. */
+function PillChoice({
+  options,
+  value,
+  onChange
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginTop: 14,
+      flexWrap: "wrap"
+    }
+  }, options.map(opt => {
+    const a = value === opt;
+    return /*#__PURE__*/React.createElement("button", {
+      key: opt,
+      type: "button",
+      onClick: () => onChange(opt),
+      style: {
+        padding: "12px 26px",
+        borderRadius: 50,
+        border: a ? `1.5px solid ${T.blue}` : `1.5px solid ${T.border}`,
+        background: a ? T.blueLight : "#fff",
+        color: a ? T.blue : T.textMid,
+        fontSize: 15,
+        fontFamily: FONT,
+        fontWeight: a ? 600 : 400,
+        cursor: "pointer",
+        transition: "all 0.2s ease"
+      }
+    }, opt);
+  }));
+}
+function TogglePill({
+  active,
+  onClick,
+  label
+}) {
+  return /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onClick,
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 14,
+      padding: "12px 24px",
+      borderRadius: 50,
+      border: active ? `1.5px solid ${T.blue}` : `1.5px solid ${T.border}`,
+      background: active ? T.blueLight : "#fff",
+      color: active ? T.blue : T.textMid,
+      fontSize: 15,
+      fontFamily: FONT,
+      fontWeight: active ? 600 : 400,
+      cursor: "pointer",
+      transition: "all 0.2s ease",
+      userSelect: "none"
+    }
+  }, active && "✓ ", label);
+}
+function PhoneInput({
+  value,
+  onChange
+}) {
+  return /*#__PURE__*/React.createElement("input", {
+    type: "tel",
+    value: value,
+    onChange: e => onChange(formatPhone(e.target.value)),
+    placeholder: "000-000-0000",
+    style: {
+      width: "100%",
+      padding: "15px 20px",
+      background: "#fff",
+      border: `1.5px solid ${T.border}`,
+      borderRadius: 10,
+      color: T.text,
+      fontSize: 16,
+      fontFamily: FONT,
+      outline: "none",
+      transition: "border-color 0.3s, box-shadow 0.3s",
+      boxSizing: "border-box",
+      marginTop: 14
+    },
+    onFocus: e => {
+      e.target.style.borderColor = T.blue;
+      e.target.style.boxShadow = `0 0 0 3px ${T.blue}18`;
+    },
+    onBlur: e => {
+      e.target.style.borderColor = T.border;
+      e.target.style.boxShadow = "none";
+    }
+  });
+}
+function Reply({
+  text
+}) {
+  return /*#__PURE__*/React.createElement(FadeIn, {
+    delay: 100
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 14,
+      color: T.textMid,
+      fontSize: 15,
+      fontFamily: FONT,
+      lineHeight: 1.6
+    }
+  }, text));
+}
+function groupQuestion(step, data, setData, first) {
+  const set = patch => setData(d => ({
+    ...d,
+    ...(typeof patch === "function" ? patch(d) : patch)
+  }));
+  const toggleIn = (key, opt) => setData(d => {
+    const arr = d[key] || [];
+    return {
+      ...d,
+      [key]: arr.includes(opt) ? arr.filter(x => x !== opt) : [...arr, opt]
+    };
+  });
+  const units = parseInt(data.totalUnits || "0");
+  switch (step) {
+    case "name":
+      return {
+        label: "What's your name?",
+        valid: !!data.fullName.trim(),
+        body: /*#__PURE__*/React.createElement(TextInput, {
+          value: data.fullName,
+          onChange: v => set({
+            fullName: v
+          }),
+          placeholder: "First and last name",
+          autoFocus: first
+        })
+      };
+    case "company":
+      return {
+        label: "What company do you work with?",
+        valid: data.noCompany || !!data.companyName.trim(),
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, !data.noCompany && /*#__PURE__*/React.createElement(TextInput, {
+          value: data.companyName,
+          onChange: v => set({
+            companyName: v
+          }),
+          placeholder: "Company name"
+        }), /*#__PURE__*/React.createElement(Checkbox, {
+          checked: data.noCompany,
+          onChange: val => set({
+            noCompany: val,
+            companyName: ""
+          }),
+          label: "I don't work with a company / I'm an independent owner"
+        }))
+      };
+    case "website":
+      return {
+        label: data.noCompany ? "Does your rental business have a website?" : "Does your company have a website?",
+        valid: data.noWebsite || !!data.companyWebsite.trim(),
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, !data.noWebsite && /*#__PURE__*/React.createElement(TextInput, {
+          value: data.companyWebsite,
+          onChange: v => set({
+            companyWebsite: v
+          }),
+          placeholder: "https://yourcompany.com"
+        }), /*#__PURE__*/React.createElement(Checkbox, {
+          checked: data.noWebsite,
+          onChange: val => set({
+            noWebsite: val,
+            companyWebsite: ""
+          }),
+          label: "We don't have a website"
+        }))
+      };
+    case "certify":
+      return {
+        label: "Please certify the following:",
+        valid: data.certifyNoDebt && !data.certifyOwesDebt,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Checkbox, {
+          checked: data.certifyNoDebt,
+          onChange: val => set(d => ({
+            certifyNoDebt: val,
+            certifyOwesDebt: val ? false : d.certifyOwesDebt
+          })),
+          label: `I, ${data.fullName || "the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`
+        }), /*#__PURE__*/React.createElement(Checkbox, {
+          checked: data.certifyOwesDebt,
+          onChange: val => set(d => ({
+            certifyOwesDebt: val,
+            certifyNoDebt: val ? false : d.certifyNoDebt
+          })),
+          label: "I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau.",
+          small: true
+        }), data.certifyOwesDebt && /*#__PURE__*/React.createElement(FadeIn, {
+          delay: 100
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            marginTop: 18,
+            padding: "20px 24px",
+            background: T.warnBg,
+            border: `1.5px solid ${T.warn}55`,
+            borderRadius: 14
+          }
+        }, /*#__PURE__*/React.createElement("p", {
+          style: {
+            color: T.textMid,
+            fontSize: 15,
+            fontFamily: FONT,
+            margin: 0,
+            lineHeight: 1.6
+          }
+        }, "Please contact our main office directly at ", /*#__PURE__*/React.createElement("a", {
+          href: "tel:3216334999",
+          style: {
+            color: T.blue,
+            textDecoration: "none",
+            fontWeight: 700
+          }
+        }, "(321) 633-4999"), " and we'll be happy to assist you."), /*#__PURE__*/React.createElement("button", {
+          type: "button",
+          onClick: () => set({
+            certifyOwesDebt: false
+          }),
+          style: {
+            marginTop: 14,
+            padding: "9px 20px",
+            background: "#fff",
+            border: `1px solid ${T.border}`,
+            borderRadius: 8,
+            color: T.textMid,
+            fontSize: 14,
+            fontFamily: FONT,
+            cursor: "pointer"
+          }
+        }, "Go Back"))))
+      };
+    case "contact":
+      return {
+        label: "How can we reach you?",
+        sub: "A real member of our team will reach out personally. No automated mailing lists, no spam.",
+        valid: !!data.email.trim() && data.phone.replace(/\D/g, "").length >= 10,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(TextInput, {
+          value: data.email,
+          onChange: v => set({
+            email: v
+          }),
+          placeholder: "Your email address",
+          type: "email"
+        }), /*#__PURE__*/React.createElement(PhoneInput, {
+          value: data.phone,
+          onChange: v => set({
+            phone: v
+          })
+        }))
+      };
+    case "priorAgency":
+      return {
+        label: "Have you worked with a debt collection agency before?",
+        valid: !!data.priorAgency,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PillChoice, {
+          options: ["Yes", "No"],
+          value: data.priorAgency,
+          onChange: v => set({
+            priorAgency: v
+          })
+        }), data.priorAgency === "Yes" && /*#__PURE__*/React.createElement(Reply, {
+          text: "We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 40 years specializing in residential rental collections, we think you'll notice the difference."
+        }), data.priorAgency === "No" && /*#__PURE__*/React.createElement(Reply, {
+          text: "No worries at all. We'll walk you through the entire process. Over 40 years of experience means we've made it as simple as possible for first-timers."
+        }))
+      };
+    case "debtTypes":
+      return {
+        label: "What kind of debts are you looking to get collected?",
+        sub: "Select all that apply",
+        valid: data.debtTypes.length > 0 && (!data.debtTypes.includes("Other") || !!(data.customDebtType || "").trim()),
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MultiSelect, {
+          options: DEBT_TYPES,
+          selected: data.debtTypes,
+          onToggle: opt => toggleIn("debtTypes", opt)
+        }), data.debtTypes.includes("Other") && /*#__PURE__*/React.createElement(TextInput, {
+          value: data.customDebtType || "",
+          onChange: v => set({
+            customDebtType: v
+          }),
+          placeholder: "Describe the type of debt you need collected"
+        }))
+      };
+    case "debtsNow":
+      return {
+        label: "Do you have debts you're looking to get collected right now?",
+        valid: !!data.debtsNow,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PillChoice, {
+          options: ["Yes, we have accounts ready", "Not yet, but soon"],
+          value: data.debtsNow,
+          onChange: v => set({
+            debtsNow: v
+          })
+        }), data.debtsNow === "Yes, we have accounts ready" && /*#__PURE__*/React.createElement(Reply, {
+          text: "Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement."
+        }), data.debtsNow === "Not yet, but soon" && /*#__PURE__*/React.createElement(Reply, {
+          text: "No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list."
+        }))
+      };
+    case "states":
+    case "nonResStates":
+      return {
+        label: "What states do you operate in?",
+        sub: "Click states or type to search",
+        valid: data.states.length > 0,
+        body: /*#__PURE__*/React.createElement(USStateMap, {
+          selected: data.states,
+          onToggle: (name, bulkSet) => {
+            if (bulkSet !== undefined) set({
+              states: bulkSet
+            });else toggleIn("states", name);
+          }
+        })
+      };
+    case "ownership":
+      return {
+        label: "Do you own the properties you manage, or do you manage on behalf of other owners?",
+        valid: !!data.ownershipType,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(PillChoice, {
+          options: ["We own them", "We manage for others", "We own and manage for others"],
+          value: data.ownershipType,
+          onChange: v => set({
+            ownershipType: v
+          })
+        }), data.ownershipType === "We own them" && /*#__PURE__*/React.createElement(Reply, {
+          text: "Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all."
+        }), data.ownershipType === "We manage for others" && /*#__PURE__*/React.createElement(Reply, {
+          text: "We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions."
+        }), data.ownershipType === "We own and manage for others" && /*#__PURE__*/React.createElement(FadeIn, {
+          delay: 100
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            marginTop: 18,
+            padding: "20px 24px",
+            background: "#fff",
+            border: `1.5px solid ${T.border}`,
+            borderRadius: 14
+          }
+        }, /*#__PURE__*/React.createElement("p", {
+          style: {
+            color: T.textMid,
+            fontSize: 14,
+            fontFamily: FONT,
+            marginBottom: 10
+          }
+        }, "What percentage of your portfolio do you own?"), /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 6
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            color: T.blue,
+            fontWeight: 700,
+            fontSize: 22,
+            fontFamily: FONT
+          }
+        }, data.ownPercent, "% own"), /*#__PURE__*/React.createElement("span", {
+          style: {
+            color: T.textLight,
+            fontWeight: 600,
+            fontSize: 22,
+            fontFamily: FONT
+          }
+        }, 100 - data.ownPercent, "% manage")), /*#__PURE__*/React.createElement("input", {
+          type: "range",
+          min: 0,
+          max: 100,
+          value: data.ownPercent,
+          onChange: e => set({
+            ownPercent: parseInt(e.target.value)
+          }),
+          style: {
+            width: "100%",
+            accentColor: T.blue
+          }
+        }))))
+      };
+    case "units":
+      return {
+        label: "How many units do you manage in total?",
+        valid: !!data.totalUnits,
+        body: /*#__PURE__*/React.createElement(TextInput, {
+          value: data.totalUnits,
+          onChange: v => set({
+            totalUnits: v.replace(/\D/g, "")
+          }),
+          placeholder: "Number of units",
+          autoFocus: first
+        })
+      };
+    case "rentalTypes":
+      return {
+        label: "What types of residential rentals do you manage?",
+        sub: "Select all that apply",
+        valid: (data.rentalTypes || []).length > 0,
+        body: /*#__PURE__*/React.createElement(MultiSelect, {
+          options: RENTAL_TYPES,
+          selected: data.rentalTypes || [],
+          onToggle: opt => toggleIn("rentalTypes", opt)
+        })
+      };
+    case "propertyTypes":
+      return {
+        label: "What types of properties are in your portfolio?",
+        sub: "Select all that apply",
+        valid: (data.propertyTypes || []).length > 0,
+        body: /*#__PURE__*/React.createElement(MultiSelect, {
+          options: PROPERTY_TYPES,
+          selected: data.propertyTypes || [],
+          onToggle: opt => toggleIn("propertyTypes", opt)
+        })
+      };
+    case "avgRent":
+      {
+        const sliderPos = data.rentSliderPos ?? rentValueToSlider(1500);
+        const rentVal = rentSliderToValue(sliderPos);
+        return {
+          label: "What's the average monthly rental rate per unit?",
+          valid: true,
+          body: /*#__PURE__*/React.createElement(FadeIn, null, /*#__PURE__*/React.createElement("div", {
+            style: {
+              marginTop: 14,
+              padding: "24px",
+              background: "#fff",
+              border: `1.5px solid ${T.border}`,
+              borderRadius: 14
+            }
+          }, /*#__PURE__*/React.createElement("div", {
+            style: {
+              textAlign: "center",
+              marginBottom: 16
+            }
+          }, /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 36,
+              fontWeight: 700,
+              color: T.blue,
+              fontFamily: FONT
+            }
+          }, formatRent(rentVal)), /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 14,
+              color: T.textLight,
+              fontFamily: FONT,
+              marginLeft: 6
+            }
+          }, "/ month")), /*#__PURE__*/React.createElement("input", {
+            type: "range",
+            min: 0,
+            max: RENT_TICKS.length - 1,
+            value: sliderPos,
+            onChange: e => {
+              const pos = parseInt(e.target.value);
+              set({
+                rentSliderPos: pos,
+                avgRent: rentSliderToValue(pos)
+              });
+            },
+            style: {
+              width: "100%",
+              accentColor: T.blue,
+              height: 8
+            }
+          }), /*#__PURE__*/React.createElement("div", {
+            style: {
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 6
+            }
+          }, /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 11,
+              color: T.textLight,
+              fontFamily: FONT
+            }
+          }, "$500"), /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 11,
+              color: T.textLight,
+              fontFamily: FONT
+            }
+          }, "$2,000"), /*#__PURE__*/React.createElement("span", {
+            style: {
+              fontSize: 11,
+              color: T.textLight,
+              fontFamily: FONT
+            }
+          }, "$100,000+"))))
+        };
+      }
+    case "listings":
+      return {
+        label: "Where do you list your rentals?",
+        sub: "Select all that apply",
+        valid: data.listingSites.length > 0,
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MultiSelect, {
+          options: LISTING_SITES,
+          selected: data.listingSites,
+          onToggle: opt => toggleIn("listingSites", opt)
+        }), data.listingSites.includes("Other") && /*#__PURE__*/React.createElement(TextInput, {
+          value: data.customListing,
+          onChange: v => set({
+            customListing: v
+          }),
+          placeholder: "Where else do you list?"
+        }))
+      };
+    case "pmSoftware":
+      {
+        const none = (data.pmSoftware || []).includes("None");
+        return {
+          label: "What property management software do you use?",
+          sub: "Select all that apply, or let us know if you don't use any",
+          valid: (data.pmSoftware || []).length > 0,
+          body: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(MultiSelect, {
+            options: PM_SOFTWARE,
+            selected: data.pmSoftware || [],
+            onToggle: opt => setData(d => {
+              const arr = (d.pmSoftware || []).filter(x => x !== "None");
+              return {
+                ...d,
+                pmSoftware: arr.includes(opt) ? arr.filter(x => x !== opt) : [...arr, opt]
+              };
+            })
+          }), (data.pmSoftware || []).includes("Other") && /*#__PURE__*/React.createElement(TextInput, {
+            value: data.customPM || "",
+            onChange: v => set({
+              customPM: v
+            }),
+            placeholder: "What software do you use?"
+          }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TogglePill, {
+            active: none,
+            onClick: () => set({
+              pmSoftware: none ? [] : ["None"],
+              customPM: ""
+            }),
+            label: "We don't use any"
+          })))
+        };
+      }
+    case "comments":
+      return {
+        label: "Do you have any questions or comments for our team?",
+        valid: data.noQuestions || !!(data.comments || "").trim(),
+        body: /*#__PURE__*/React.createElement(React.Fragment, null, !data.noQuestions && /*#__PURE__*/React.createElement(TextArea, {
+          value: data.comments || "",
+          onChange: v => set({
+            comments: v
+          }),
+          placeholder: "Any questions, comments, or things we should know..."
+        }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(TogglePill, {
+          active: data.noQuestions,
+          onClick: () => set(d => ({
+            noQuestions: !d.noQuestions,
+            comments: ""
+          })),
+          label: "Nope, all good!"
+        })))
+      };
+    default:
+      return null;
+  }
+}
+function GroupContent({
+  steps,
+  data,
+  setData,
+  next
+}) {
+  const hasIntro = steps.indexOf("intro") !== -1;
+  const specs = steps.filter(x => x !== "intro").map((x, i) => ({
+    step: x,
+    spec: groupQuestion(x, data, setData, i === 0)
+  })).filter(x => x.spec);
+  const allValid = specs.every(x => x.spec.valid);
+  const isSubmit = steps.indexOf("comments") !== -1;
+  const base = hasIntro ? 900 : 100;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, hasIntro && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(RevealText, {
+    text: "We're excited to work with you to get your debt collected.",
+    delay: 100,
+    className: "hero-text",
+    slow: true
+  }), /*#__PURE__*/React.createElement(RevealText, {
+    text: "But first, we'll need some information about you.",
+    delay: 400,
+    className: "sub-text",
+    slow: true
+  })), specs.map((x, i) => /*#__PURE__*/React.createElement(FadeIn, {
+    key: x.step,
+    delay: base + i * 150
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "q-block",
+    style: i === 0 && !hasIntro ? {
+      marginTop: 0,
+      paddingTop: 0,
+      borderTop: "none"
+    } : undefined
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "q-label"
+  }, x.spec.label), x.spec.sub && /*#__PURE__*/React.createElement("p", {
+    className: "q-sub"
+  }, x.spec.sub), x.spec.body))), /*#__PURE__*/React.createElement(ContinueButton, {
+    onClick: next,
+    label: isSubmit ? "Submit" : "Continue",
+    delay: base + specs.length * 150 + 100,
+    disabled: !allValid
+  }));
+}
+
 /* ═══ FLOW DEFINITIONS ═══ */
 const RESIDENTIAL_FLOW = ["intro", "name", "company", "website", "certify", "contact", "priorAgency", "debtTypes", "debtsNow", "sellAcbPitch", "states", "sellContingency", "ownership", "sellSkipTrace", "units", "sellRecoverableInsight", "sellBigPortfolio", "sellUsStaff", "rentalTypes", "propertyTypes", "avgRent", "listings", "pmSoftware", "sellReporting", "sellStrategy", "comments", "done"];
 const NON_RES_SHORT_FLOW = ["intro", "name", "company", "website", "certify", "contact", "priorAgency", "debtTypes", "debtsNow", "nonResBranch", "nonResStates", "comments", "done"];
 const DEDICATED_TEAM_FLOW = ["intro", "name", "company", "website", "certify", "contact", "priorAgency", "debtTypes", "debtsNow", "nonResBranch", "sellDedicatedTeam", "states", "sellContingency", "ownership", "sellSkipTrace", "units", "sellBigPortfolio", "sellUsStaff", "sellStrategy", "comments", "done"];
+// Grouped layouts (groupedQuestions flag): a flow unit is either a single step
+// name or an array of 2-4 steps shown together on one card.
+const GROUPED_START = [["intro", "name", "company", "website"], ["certify", "contact"], ["priorAgency", "debtTypes", "debtsNow"]];
+const RESIDENTIAL_FLOW_GROUPED = [...GROUPED_START, "sellAcbPitch", ["states", "ownership"], "sellContingency", ["units", "rentalTypes"], "sellSkipTrace", "sellUsStaff", ["propertyTypes", "avgRent"], "sellRecoverableInsight", "sellBigPortfolio", "sellTeamExtension", ["listings", "pmSoftware"], "sellReporting", "sellStrategy", "comments", "done"];
+const NON_RES_SHORT_FLOW_GROUPED = [...GROUPED_START, "nonResBranch", ["nonResStates", "comments"], "done"];
+const DEDICATED_TEAM_FLOW_GROUPED = [...GROUPED_START, "nonResBranch", "sellDedicatedTeam", ["states", "ownership"], "sellContingency", "units", "sellSkipTrace", "sellBigPortfolio", "sellUsStaff", "sellStrategy", "comments", "done"];
+const unitSteps = u => Array.isArray(u) ? u : [u];
+const unitKey = u => Array.isArray(u) ? u[0] : u;
+const isPitchUnit = u => typeof u === "string" && u.indexOf("sell") === 0;
+const flowIndexOfStep = (flow, step) => {
+  for (let i = 0; i < flow.length; i++) {
+    if (unitSteps(flow[i]).indexOf(step) !== -1) return i;
+  }
+  return -1;
+};
+const flowKind = f => flowIndexOfStep(f, "nonResBranch") === -1 ? "RES" : flowIndexOfStep(f, "sellDedicatedTeam") !== -1 ? "DED" : "NONRES";
+const isGroupedFlow = f => f.some(u => Array.isArray(u));
+function FLOWS() {
+  const g = !!TRACK.flags.groupedQuestions;
+  return {
+    RES: g ? RESIDENTIAL_FLOW_GROUPED : RESIDENTIAL_FLOW,
+    NONRES: g ? NON_RES_SHORT_FLOW_GROUPED : NON_RES_SHORT_FLOW,
+    DED: g ? DEDICATED_TEAM_FLOW_GROUPED : DEDICATED_TEAM_FLOW
+  };
+}
 
 /* ═══ MAIN COMPONENT ═══ */
 function LeadIntakeForm() {
   const [stepIndex, setStepIndex] = useState(0);
-  const [flow, setFlow] = useState(RESIDENTIAL_FLOW);
+  const [flow, setFlow] = useState(() => FLOWS().RES);
   const [data, setData] = useState({
     fullName: "",
     companyName: "",
@@ -2489,30 +3303,136 @@ function LeadIntakeForm() {
   const formStartedAt = useRef(new Date().toISOString());
   const apiHealthy = useRef(false);
   const [receiptId, setReceiptId] = useState(null);
+  const stateRef = useRef({
+    flow,
+    stepIndex
+  });
+  stateRef.current = {
+    flow,
+    stepIndex
+  };
+  // When the layout flags arrive after first paint (or after a resume), move
+  // the visitor to the matching grouped/ungrouped flow at the same question.
+  const applyLayoutFlags = useCallback(() => {
+    const {
+      flow: cf,
+      stepIndex: ci
+    } = stateRef.current;
+    const target = FLOWS()[flowKind(cf)];
+    if (isGroupedFlow(cf) === isGroupedFlow(target)) return;
+    const curStep = unitKey(cf[ci] || "intro");
+    let idx = flowIndexOfStep(target, curStep);
+    if (idx < 0) idx = 0;
+    setFlow(target);
+    setStepIndex(idx);
+  }, []);
 
-  // Session save/restore
+  // Session save/restore. A ?resume=<token> in our URL (or the parent page's
+  // URL, read via document.referrer since the iframe is cross-origin) comes
+  // from a recapture email: fetch the saved answers from the Lead Console,
+  // prefill, reuse the original session id, and drop them at their last step.
   useEffect(() => {
+    const restoreLocal = () => {
+      if (PREVIEW.active) return;
+      try {
+        const saved = sessionStorage.getItem("acb_form_progress");
+        if (saved) {
+          const p = JSON.parse(saved);
+          if (p.data && p.stepIndex != null && p.flow) {
+            setData(p.data);
+            setStepIndex(p.stepIndex);
+            setFlow(p.flow);
+            setTextsDone({
+              a: true,
+              b: true,
+              c: true,
+              sell_done: true,
+              list_q: true
+            });
+          }
+        }
+      } catch (e) {}
+    };
+    let token = null;
     try {
-      const saved = sessionStorage.getItem("acb_form_progress");
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (p.data && p.stepIndex != null && p.flow) {
-          setData(p.data);
-          setStepIndex(p.stepIndex);
-          setFlow(p.flow);
-          setTextsDone({
-            a: true,
-            b: true,
-            c: true,
-            sell_done: true,
-            list_q: true
-          });
+      token = new URLSearchParams(window.location.search).get('resume');
+    } catch (e) {}
+    if (!token) {
+      try {
+        if (document.referrer) {
+          token = new URLSearchParams(new URL(document.referrer).search).get('resume');
+        }
+      } catch (e) {}
+    }
+    if (!token) {
+      restoreLocal();
+      return;
+    }
+    fetch(LEAD_CONSOLE_API + '/api/leads/resume?token=' + encodeURIComponent(token)).then(r => r.ok ? r.json() : null).then(res => {
+      if (!res || !res.success) {
+        restoreLocal();
+        return;
+      }
+      if (res.session_id) {
+        sessionId.current = res.session_id;
+        TRACK.sessionId = res.session_id;
+      }
+      track('resume', res.step || null, null);
+      const f = res.fields || {};
+      setData(d => {
+        const nd = {
+          ...d
+        };
+        if (f.full_name) nd.fullName = String(f.full_name);
+        if (f.email) nd.email = String(f.email);
+        if (f.phone) nd.phone = String(f.phone);
+        if (f.company_name) {
+          if (f.company_name === '(Independent)') {
+            nd.noCompany = true;
+          } else {
+            nd.companyName = String(f.company_name);
+          }
+        }
+        if (f.company_website) nd.companyWebsite = String(f.company_website);
+        if (Array.isArray(f.debt_types)) nd.debtTypes = f.debt_types;
+        if (f.custom_debt_type) nd.customDebtType = String(f.custom_debt_type);
+        if (Array.isArray(f.states)) nd.states = f.states;
+        if (f.ownership_type) nd.ownershipType = String(f.ownership_type);
+        if (f.total_units) nd.totalUnits = String(f.total_units);
+        return nd;
+      });
+      // Map the recorded checkpoint to the step they should land on
+      let stepName = 'name';
+      const s = String(res.step || '');
+      if (s.indexOf('abandoned_at_') === 0) stepName = s.slice('abandoned_at_'.length);else if (s === 'contact_info') stepName = 'priorAgency';else if (s === 'debt_types') stepName = 'debtsNow';else if (s === 'portfolio_details') stepName = 'rentalTypes';
+      const F = FLOWS();
+      const flows = [F.RES, F.DED, F.NONRES];
+      let targetFlow = F.RES;
+      for (let i = 0; i < flows.length; i++) {
+        if (flowIndexOfStep(flows[i], stepName) !== -1) {
+          targetFlow = flows[i];
+          break;
         }
       }
-    } catch (e) {}
+      let idx = flowIndexOfStep(targetFlow, stepName);
+      if (idx < 0) idx = 1;
+      if (unitKey(targetFlow[idx]) === 'done') idx = Math.max(0, idx - 1);
+      setFlow(targetFlow);
+      setStepIndex(idx);
+      setTextsDone({
+        a: true,
+        b: true,
+        c: true,
+        sell_done: true,
+        list_q: true
+      });
+      if (f.email || f.phone) hasContactInfo.current = true;
+    }).catch(() => {
+      restoreLocal();
+    });
   }, []);
   useEffect(() => {
-    if (flow[stepIndex] === "done") return;
+    if (PREVIEW.active || unitKey(flow[stepIndex] || "done") === "done") return;
     try {
       sessionStorage.setItem("acb_form_progress", JSON.stringify({
         data,
@@ -2581,7 +3501,7 @@ function LeadIntakeForm() {
     });
 
     // Health check for Lead Console API
-    fetch(LEAD_CONSOLE_API + '/api/health', {
+    if (!PREVIEW.active) fetch(LEAD_CONSOLE_API + '/api/health', {
       method: 'GET',
       mode: 'cors'
     }).then(r => r.json()).then(d => {
@@ -2612,9 +3532,45 @@ function LeadIntakeForm() {
       apiHealthy.current = false;
     });
 
+    // Flow tracking: assign experiment variants, then start batching events.
+    TRACK.sessionId = sessionId.current;
+    TRACK.context = {
+      referrer: trackingData.current.referrer || null,
+      device: trackingData.current.device || null,
+      source_page: window.location.href
+    };
+    if (!PREVIEW.active) {
+      fetch(LEAD_CONSOLE_API + '/api/form/config', {
+        mode: 'cors'
+      }).then(r => r.json()).then(cfg => {
+        const a = assignVariants(cfg && cfg.experiments, sessionId.current);
+        TRACK.variants = a.variants;
+        TRACK.flags = a.flags;
+        applyLayoutFlags();
+        track('view', null, {
+          variants: a.variants
+        });
+      }).catch(() => {
+        track('view', null, null);
+      });
+    }
+    const flushInterval = setInterval(flushTrack, 5000);
+    const onHide = () => {
+      if (!formSubmitted.current) {
+        track('abandon', null, {
+          step: document.__acbCurrentStep || null
+        });
+      }
+      flushTrack();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushTrack();
+    });
+
     // Heartbeat interval
     const heartbeatInterval = setInterval(() => {
-      if (!formSubmitted.current) {
+      if (!formSubmitted.current && !PREVIEW.active) {
         fetch(LEAD_CONSOLE_API + '/api/leads/heartbeat', {
           method: 'POST',
           headers: {
@@ -2648,13 +3604,39 @@ function LeadIntakeForm() {
     } catch (e) {}
     return () => {
       clearInterval(heartbeatInterval);
+      clearInterval(flushInterval);
+      window.removeEventListener('pagehide', onHide);
     };
   }, []);
+
+  // Step transitions: one effect covers every way the step can change.
+  const prevStepRef = useRef(null);
+  useEffect(() => {
+    const unit = flow[stepIndex];
+    if (!unit) return;
+    const cur = unitKey(unit);
+    const nowTs = Date.now();
+    if (prevStepRef.current && prevStepRef.current !== cur) {
+      track('step_exit', prevStepRef.current, {
+        dwell_ms: nowTs - TRACK.stepEnteredAt
+      });
+    }
+    if (prevStepRef.current !== cur) {
+      track(isPitchUnit(unit) ? 'pitch_view' : 'step_enter', cur, {
+        index: stepIndex,
+        flow_len: flow.length,
+        group: Array.isArray(unit) ? unit : undefined
+      });
+      TRACK.stepEnteredAt = nowTs;
+      prevStepRef.current = cur;
+      document.__acbCurrentStep = cur;
+    }
+  }, [stepIndex, flow]);
 
   // Partial capture helper
   const sendPartial = useCallback((stepName, fields) => {
     if (honeypotRef.current && honeypotRef.current.value) return; // honeypot: skip partial/abandon leads for bots
-    if (!apiHealthy.current) return;
+    if (PREVIEW.active || !apiHealthy.current) return;
     fetch(LEAD_CONSOLE_API + '/api/leads/partial', {
       method: 'POST',
       headers: {
@@ -2670,7 +3652,13 @@ function LeadIntakeForm() {
         fields: fields,
         metadata: {
           source: 'acb-intake-form',
-          source_page: window.location.href
+          source_page: window.location.href,
+          user_agent: navigator.userAgent,
+          device: trackingData.current.device,
+          location: trackingData.current.location,
+          timezone: trackingData.current.timezone,
+          referrer: trackingData.current.referrer,
+          experiment_variants: TRACK.variants
         }
       })
     }).catch(() => {});
@@ -2679,13 +3667,13 @@ function LeadIntakeForm() {
   // Abandonment: fire partial submit on page unload if we have contact info
   useEffect(() => {
     const handleUnload = () => {
-      if (hasContactInfo.current && !formSubmitted.current) {
+      if (hasContactInfo.current && !formSubmitted.current && !PREVIEW.active) {
         // Send partial to Lead Console API
         const abandonPayload = JSON.stringify({
           submission_id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
           session_id: sessionId.current,
           is_partial: true,
-          partial_step: 'abandoned_at_' + flow[stepIndex],
+          partial_step: 'abandoned_at_' + unitKey(flow[stepIndex] || "done"),
           form_version: FORM_VERSION,
           fields: {
             first_name: data.fullName.split(' ')[0] || '',
@@ -2698,7 +3686,13 @@ function LeadIntakeForm() {
           metadata: {
             source: 'acb-intake-form',
             source_page: window.location.href,
-            abandoned: true
+            abandoned: true,
+            user_agent: navigator.userAgent,
+            device: trackingData.current.device,
+            location: trackingData.current.location,
+            timezone: trackingData.current.timezone,
+            referrer: trackingData.current.referrer,
+            experiment_variants: TRACK.variants
           }
         });
         if (apiHealthy.current) {
@@ -2710,12 +3704,12 @@ function LeadIntakeForm() {
         if (FORMSUBMIT_ID) {
           const t = trackingData.current;
           const partial = {
-            "_subject": "[PARTIAL] " + data.fullName + (data.companyName ? " - " + data.companyName : "") + " (abandoned at: " + flow[stepIndex] + ")",
+            "_subject": "[PARTIAL] " + data.fullName + (data.companyName ? " - " + data.companyName : "") + " (abandoned at: " + unitKey(flow[stepIndex] || "done") + ")",
             "Name": data.fullName,
             "Company": data.noCompany ? "(Independent)" : data.companyName,
             "Email": data.email,
             "Phone": data.phone,
-            "Last Step": flow[stepIndex],
+            "Last Step": unitKey(flow[stepIndex] || "done"),
             "Location": t.location,
             "Device": t.device,
             _captcha: "false",
@@ -2738,7 +3732,8 @@ function LeadIntakeForm() {
       [id]: true
     }));
   }, []);
-  const currentStep = flow[stepIndex] || "done";
+  const currentUnit = flow[stepIndex] || "done";
+  const currentStep = unitKey(currentUnit);
 
   // Build FormSubmit email payload (used by primary submission and backup)
   const buildFormSubmitPayload = useCallback(formData => {
@@ -2803,6 +3798,14 @@ function LeadIntakeForm() {
       return;
     }
     formSubmitted.current = true;
+    if (PREVIEW.active) {
+      console.log("Preview mode: submission skipped");
+      return;
+    }
+    track('submit', null, {
+      variants: TRACK.variants
+    });
+    flushTrack();
     try {
       sessionStorage.removeItem("acb_form_progress");
     } catch (e) {}
@@ -2838,6 +3841,7 @@ function LeadIntakeForm() {
         device: trackingData.current.device,
         timezone: trackingData.current.timezone,
         clarity_url: trackingData.current.clarityUrl,
+        experiment_variants: TRACK.variants,
         clarity_session_id: (() => {
           try {
             let csid = null;
@@ -2975,9 +3979,10 @@ function LeadIntakeForm() {
   }, [buildFormSubmitPayload]);
   const next = useCallback(() => {
     setTextsDone({});
-    const curStep = flow[stepIndex];
+    const steps = unitSteps(flow[stepIndex] || "done");
+    const has = x => steps.indexOf(x) !== -1;
     // Mark contact info collected for abandonment tracking + send partial
-    if (curStep === "contact") {
+    if (has("contact")) {
       hasContactInfo.current = true;
       sendPartial('contact_info', {
         full_name: data.fullName,
@@ -2990,7 +3995,7 @@ function LeadIntakeForm() {
       });
     }
     // Send partial after debt types selection
-    if (curStep === "debtTypes") {
+    if (has("debtTypes")) {
       sendPartial('debt_types', {
         full_name: data.fullName,
         email: data.email,
@@ -3001,7 +4006,7 @@ function LeadIntakeForm() {
       });
     }
     // Send partial after units (portfolio details)
-    if (curStep === "units") {
+    if (has("units")) {
       sendPartial('portfolio_details', {
         full_name: data.fullName,
         email: data.email,
@@ -3014,13 +4019,18 @@ function LeadIntakeForm() {
       });
     }
     // Branch after debtsNow
-    if (curStep === "debtsNow") {
+    if (has("debtsNow")) {
+      const F = FLOWS();
       if (data.debtTypes.includes("Residential Rental Debt")) {
-        setFlow(RESIDENTIAL_FLOW);
-        setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow") + 1);
+        setFlow(F.RES);
+        let n = flowIndexOfStep(F.RES, "debtsNow") + 1;
+        if (TRACK.flags.skipPitchScreens) {
+          while (F.RES[n] && isPitchUnit(F.RES[n])) n++;
+        }
+        setStepIndex(n);
       } else {
-        setFlow(NON_RES_SHORT_FLOW);
-        setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
+        setFlow(F.NONRES);
+        setStepIndex(flowIndexOfStep(F.NONRES, "nonResBranch"));
       }
       window.scrollTo({
         top: 0,
@@ -3028,8 +4038,14 @@ function LeadIntakeForm() {
       });
       return;
     }
-    if (curStep === "comments") submitForm(data);
-    setStepIndex(i => i + 1);
+    if (has("comments")) submitForm(data);
+    setStepIndex(i => {
+      let n = i + 1;
+      if (TRACK.flags.skipPitchScreens) {
+        while (flow[n] && isPitchUnit(flow[n])) n++;
+      }
+      return n;
+    });
     window.scrollTo({
       top: 0,
       behavior: "smooth"
@@ -3037,17 +4053,18 @@ function LeadIntakeForm() {
   }, [data, submitForm, sendPartial, flow, stepIndex]);
   const goTo = useCallback(stepName => {
     setTextsDone({});
+    const F = FLOWS();
     if (stepName === "sellDedicatedTeam") {
-      setFlow(DEDICATED_TEAM_FLOW);
-      setStepIndex(DEDICATED_TEAM_FLOW.indexOf("sellDedicatedTeam"));
+      setFlow(F.DED);
+      setStepIndex(flowIndexOfStep(F.DED, "sellDedicatedTeam"));
     } else if (stepName === "sellAcbPitch") {
-      setFlow(RESIDENTIAL_FLOW);
-      setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));
+      setFlow(F.RES);
+      setStepIndex(flowIndexOfStep(F.RES, "sellAcbPitch"));
     } else if (stepName === "nonResStates") {
-      setFlow(NON_RES_SHORT_FLOW);
-      setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));
+      setFlow(F.NONRES);
+      setStepIndex(flowIndexOfStep(F.NONRES, "nonResStates"));
     } else {
-      const idx = flow.indexOf(stepName);
+      const idx = flowIndexOfStep(flow, stepName);
       if (idx >= 0) setStepIndex(idx);
     }
     window.scrollTo({
@@ -3093,13 +4110,19 @@ function LeadIntakeForm() {
       .continue-btn:disabled{background:#D0D3DC !important;color:#8889A0 !important;box-shadow:none !important;}
       .back-btn{position:fixed;bottom:28px;left:28px;padding:10px 22px;background:${T.card};border:1px solid ${T.border};border-radius:50px;color:${T.textLight};font-size:13px;font-family:${FONT};font-weight:500;cursor:pointer;transition:all 0.3s;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
       .back-btn:hover{color:${T.textMid};border-color:${T.blue}44;}
+      .q-block{margin-top:28px;padding-top:24px;border-top:1px solid ${T.border};}
+      .q-label{font-size:19px;font-weight:600;color:${T.text};line-height:1.4;letter-spacing:-0.01em;}
+      .q-sub{font-size:13px;color:${T.textLight};margin-top:4px;}
+      .preview-badge{position:fixed;bottom:28px;right:28px;z-index:120;padding:6px 12px;border-radius:50px;background:${T.text};color:#fff;font-size:12px;font-family:${FONT};font-weight:500;opacity:0.85;pointer-events:none;}
       @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
       @keyframes logo-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
       @media(max-width:900px){.step-card{max-width:680px;padding:40px 40px;}}
-      @media(max-width:640px){.hero-text{font-size:22px;}.step-card{padding:28px 20px;border-radius:16px;max-width:100%;}.form-outer{padding:16px 12px 48px;}}
+      @media(max-width:640px){.hero-text{font-size:22px;}.q-label{font-size:17px;}.preview-badge{bottom:12px;right:12px;}.step-card{padding:28px 20px;border-radius:16px;max-width:100%;}.form-outer{padding:16px 12px 48px;}}
     `), /*#__PURE__*/React.createElement(ProgressBar, {
     progress: progress
-  }), /*#__PURE__*/React.createElement("input", {
+  }), PREVIEW.active && /*#__PURE__*/React.createElement("div", {
+    className: "preview-badge"
+  }, "Preview \xB7 ", PREVIEW.label), /*#__PURE__*/React.createElement("input", {
     ref: honeypotRef,
     type: "text",
     name: "company_website_2",
@@ -3119,7 +4142,13 @@ function LeadIntakeForm() {
     className: "form-outer"
   }, /*#__PURE__*/React.createElement("div", {
     className: "step-card"
-  }, /*#__PURE__*/React.createElement(StepContent, {
+  }, Array.isArray(currentUnit) ? /*#__PURE__*/React.createElement(GroupContent, {
+    key: currentStep + stepIndex,
+    steps: currentUnit,
+    data: data,
+    setData: setData,
+    next: next
+  }) : /*#__PURE__*/React.createElement(StepContent, {
     key: currentStep + stepIndex,
     step: currentStep,
     data: data,
