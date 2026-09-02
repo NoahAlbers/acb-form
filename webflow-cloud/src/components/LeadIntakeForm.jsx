@@ -33,17 +33,55 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
       return {variants,flags};
     }
     function track(type,step,meta){
+      if(PREVIEW.active)return;
       TRACK.queue.push({type,step:step||null,at:new Date().toISOString(),elapsed_ms:Date.now()-TRACK.started,meta:meta||null});
       if(TRACK.queue.length>=20)flushTrack();
     }
     function flushTrack(){
-      if(!TRACK.queue.length||!TRACK.sessionId)return;
+      if(PREVIEW.active||!TRACK.queue.length||!TRACK.sessionId)return;
       const events=TRACK.queue.splice(0,TRACK.queue.length);
       const body=JSON.stringify({session_id:TRACK.sessionId,form_version:FORM_VERSION,context:Object.assign({variants:TRACK.variants},TRACK.context),events});
       try{
         fetch(LEAD_CONSOLE_API+'/api/form/events',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body}).catch(()=>{});
       }catch(e){}
     }
+
+    /* ═══ LAYOUT VARIANTS + PREVIEW MODE ═══
+     * Three layout flags can be combined by an experiment variant:
+     *   skipPitchScreens  - no selling-point screens
+     *   fastTransitions   - reveals and fades run about 3x faster
+     *   groupedQuestions  - 2-4 questions per card instead of one
+     * Opening the form with ?ab=<variant key> (and optionally
+     * &flags=skipPitchScreens,fastTransitions) forces a variant for previewing.
+     * Preview mode never writes to the Lead Console: no partial leads, no
+     * heartbeats, no flow events, and Submit does not create a lead.
+     */
+    const PRESET_VARIANTS={
+      classic:{},
+      no_pitch:{skipPitchScreens:true},
+      fast:{fastTransitions:true},
+      no_pitch_fast:{skipPitchScreens:true,fastTransitions:true},
+      grouped:{groupedQuestions:true},
+      fast_grouped:{fastTransitions:true,groupedQuestions:true},
+      no_pitch_grouped:{skipPitchScreens:true,groupedQuestions:true},
+      no_pitch_fast_grouped:{skipPitchScreens:true,fastTransitions:true,groupedQuestions:true}
+    };
+    const PREVIEW={active:false,label:null};
+    (function(){
+      try{
+        const own=new URLSearchParams(window.location.search);
+        let ref=null;try{if(document.referrer)ref=new URLSearchParams(new URL(document.referrer).search);}catch(e){}
+        const get=k=>own.get(k)||(ref&&ref.get(k))||null;
+        const ab=get('ab'),flagsParam=get('flags');
+        if(!ab&&!flagsParam)return;
+        const flags={};
+        if(ab&&PRESET_VARIANTS[ab])Object.assign(flags,PRESET_VARIANTS[ab]);
+        (flagsParam||'').split(',').map(x=>x.trim()).filter(Boolean).forEach(k=>{flags[k]=true;});
+        PREVIEW.active=true;PREVIEW.label=ab||'custom';
+        TRACK.flags=flags;TRACK.variants={preview:PREVIEW.label};
+      }catch(e){}
+    })();
+    const SPEED=()=>TRACK.flags.fastTransitions?0.35:1;
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -142,15 +180,19 @@ function formatRent(val){return val>=100000?"$100,000+":"$"+val.toLocaleString()
 /* ── UI Components ── */
 function RevealText({text,delay=0,onComplete,className="",slow=false}){
   const [v,setV]=useState(false); const fired=useRef(false);
-  const d = slow ? delay + 200 : delay;
+  const sp=SPEED();
+  const d = Math.round((slow ? delay + 200 : delay)*sp);
   useEffect(()=>{const t=setTimeout(()=>setV(true),d);return()=>clearTimeout(t);},[d]);
-  useEffect(()=>{if(v&&onComplete&&!fired.current){fired.current=true;const t=setTimeout(onComplete,slow?600:300);return()=>clearTimeout(t);}},[v,onComplete]);
-  return <p className={className} style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(10px)",transition:`opacity ${slow?0.8:0.5}s ease, transform ${slow?0.8:0.5}s ease`}}>{text}</p>;
+  useEffect(()=>{if(v&&onComplete&&!fired.current){fired.current=true;const t=setTimeout(onComplete,Math.round((slow?600:300)*sp));return()=>clearTimeout(t);}},[v,onComplete]);
+  const dur=((slow?0.8:0.5)*sp).toFixed(2);
+  return <p className={className} style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(10px)",transition:`opacity ${dur}s ease, transform ${dur}s ease`}}>{text}</p>;
 }
 function FadeIn({children,delay=0,slow=false}){
   const [v,setV]=useState(false);
-  useEffect(()=>{const t=setTimeout(()=>setV(true),slow?delay+200:delay);return()=>clearTimeout(t);},[delay,slow]);
-  return <div style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(12px)",transition:`opacity ${slow?0.7:0.45}s ease, transform ${slow?0.7:0.45}s ease`}}>{children}</div>;
+  const sp=SPEED();
+  useEffect(()=>{const t=setTimeout(()=>setV(true),Math.round((slow?delay+200:delay)*sp));return()=>clearTimeout(t);},[delay,slow]);
+  const dur=((slow?0.7:0.45)*sp).toFixed(2);
+  return <div style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(12px)",transition:`opacity ${dur}s ease, transform ${dur}s ease`}}>{children}</div>;
 }
 function ContinueButton({onClick,label="Continue",delay=0,disabled=false}){
   return <FadeIn delay={delay}><button onClick={onClick} disabled={disabled} className="continue-btn" style={{marginTop:28,padding:"15px 52px",background:disabled?"#D0D3DC":T.blue,color:disabled?"#8889A0":"#fff",border:"none",borderRadius:50,fontSize:16,fontFamily:FONT,fontWeight:600,cursor:disabled?"not-allowed":"pointer",transition:"all 0.3s ease",boxShadow:disabled?"none":`0 4px 18px ${T.blue}44`}}>{label}</button></FadeIn>;
@@ -203,7 +245,7 @@ function TestimonialCard({quote,name,title,company,delay=0,slow=true}){
 /* ── Stat Counter ── */
 function StatCounter({value,label,prefix="",suffix="",delay=0}){
   const [show,setShow]=useState(false);
-  useEffect(()=>{const t=setTimeout(()=>setShow(true),delay);return()=>clearTimeout(t);},[delay]);
+  useEffect(()=>{const t=setTimeout(()=>setShow(true),Math.round(delay*SPEED()));return()=>clearTimeout(t);},[delay]);
   return <div style={{textAlign:"center",padding:"20px 0",opacity:show?1:0,transform:show?"scale(1)":"scale(0.85)",transition:"all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)"}}>
     <p style={{fontSize:42,fontWeight:800,color:T.blue,fontFamily:FONT,margin:0,letterSpacing:"-0.02em"}}>{prefix}{value}{suffix}</p>
     <p style={{fontSize:14,color:T.textLight,fontFamily:FONT,margin:"4px 0 0",fontWeight:500}}>{label}</p>
@@ -379,7 +421,13 @@ function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone,re
       </div></FadeIn><ContinueButton onClick={next} delay={300} /></>}</>;
     }
 
-    case "listings": return <><SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done&&<><div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" /></div>{textsDone.list_q&&<><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other")&&<TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>}</>;
+    case "listings": {
+      const question=<><RevealText text="Where do you list your rentals?" delay={100} onComplete={()=>markTextDone("list_q")} className="hero-text" />{textsDone.list_q&&<><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>setData(d=>({...d,listingSites:d.listingSites.includes(opt)?d.listingSites.filter(x=>x!==opt):[...d.listingSites,opt]}))} delay={200} />{data.listingSites.includes("Other")&&<TextInput value={data.customListing} onChange={v=>setData(d=>({...d,customListing:v}))} placeholder="Where else do you list?" delay={100} />}<ContinueButton onClick={next} delay={350} disabled={data.listingSites.length===0} /></>}</>;
+      if(TRACK.flags.skipPitchScreens)return question;
+      return <><SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={()=>markTextDone("sell_done")} markTextDone={markTextDone} textsDone={textsDone} />{textsDone.sell_done&&<div style={{marginTop:32,paddingTop:28,borderTop:`1px solid ${T.border}`}}>{question}</div>}</>;
+    }
+
+    case "sellTeamExtension": return <SellSection lines={[{text:"Think of us like an extension of your own team."},{text:"You'll have the direct emails and phone numbers for multiple members of our staff. No getting transferred around like a game of hot potato."}]} affirmLabel="I like the sound of that" onContinue={next} markTextDone={markTextDone} textsDone={textsDone} />;
 
     case "pmSoftware": return <><RevealText text="What property management software do you use?" delay={100} onComplete={()=>markTextDone("a")} className="hero-text" />{textsDone.a&&<><FadeIn delay={100}><p style={{color:T.textLight,fontSize:13,fontFamily:FONT,marginTop:6}}>Select all that apply, or skip if you don't use any</p></FadeIn><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>({...d,pmSoftware:(d.pmSoftware||[]).includes(opt)?(d.pmSoftware||[]).filter(x=>x!==opt):[...(d.pmSoftware||[]),opt]}))} delay={200} />{(data.pmSoftware||[]).includes("Other")&&<TextInput value={data.customPM||""} onChange={v=>setData(d=>({...d,customPM:v}))} placeholder="What software do you use?" delay={100} />}<div style={{display:"flex",gap:12,marginTop:24,flexWrap:"wrap"}}><ContinueButton onClick={next} delay={350} disabled={(data.pmSoftware||[]).length===0} /><FadeIn delay={400}><button onClick={()=>{setData(d=>({...d,pmSoftware:["None"],customPM:""}));next();}} style={{marginTop:28,padding:"15px 36px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:50,color:T.textMid,fontSize:16,fontFamily:FONT,fontWeight:500,cursor:"pointer"}}>We don't use any</button></FadeIn></div></>}</>;
 
@@ -403,15 +451,92 @@ function StepContent({step,data,setData,goTo,next,back,markTextDone,textsDone,re
   }
 }
 
+/* ═══ GROUPED QUESTIONS (layout experiment) ═══
+ * Several questions on one card with one Continue button. Each question uses
+ * the same widget as its single-step version, without the typewriter reveal. */
+function PillChoice({options,value,onChange}){
+  return <div style={{display:"flex",gap:10,marginTop:14,flexWrap:"wrap"}}>{options.map(opt=>{const a=value===opt;return <button key={opt} type="button" onClick={()=>onChange(opt)} style={{padding:"12px 26px",borderRadius:50,border:a?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:a?T.blueLight:"#fff",color:a?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:a?600:400,cursor:"pointer",transition:"all 0.2s ease"}}>{opt}</button>;})}</div>;
+}
+function TogglePill({active,onClick,label}){
+  return <button type="button" onClick={onClick} style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:14,padding:"12px 24px",borderRadius:50,border:active?`1.5px solid ${T.blue}`:`1.5px solid ${T.border}`,background:active?T.blueLight:"#fff",color:active?T.blue:T.textMid,fontSize:15,fontFamily:FONT,fontWeight:active?600:400,cursor:"pointer",transition:"all 0.2s ease",userSelect:"none"}}>{active&&"✓ "}{label}</button>;
+}
+function PhoneInput({value,onChange}){
+  return <input type="tel" value={value} onChange={e=>onChange(formatPhone(e.target.value))} placeholder="000-000-0000" style={{width:"100%",padding:"15px 20px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:10,color:T.text,fontSize:16,fontFamily:FONT,outline:"none",transition:"border-color 0.3s, box-shadow 0.3s",boxSizing:"border-box",marginTop:14}} onFocus={e=>{e.target.style.borderColor=T.blue;e.target.style.boxShadow=`0 0 0 3px ${T.blue}18`;}} onBlur={e=>{e.target.style.borderColor=T.border;e.target.style.boxShadow="none";}}/>;
+}
+function Reply({text}){
+  return <FadeIn delay={100}><p style={{marginTop:14,color:T.textMid,fontSize:15,fontFamily:FONT,lineHeight:1.6}}>{text}</p></FadeIn>;
+}
+function groupQuestion(step,data,setData,first){
+  const set=patch=>setData(d=>({...d,...(typeof patch==="function"?patch(d):patch)}));
+  const toggleIn=(key,opt)=>setData(d=>{const arr=d[key]||[];return {...d,[key]:arr.includes(opt)?arr.filter(x=>x!==opt):[...arr,opt]};});
+  const units=parseInt(data.totalUnits||"0");
+  switch(step){
+    case "name": return {label:"What's your name?",valid:!!data.fullName.trim(),body:<TextInput value={data.fullName} onChange={v=>set({fullName:v})} placeholder="First and last name" autoFocus={first} />};
+    case "company": return {label:"What company do you work with?",valid:data.noCompany||!!data.companyName.trim(),body:<>{!data.noCompany&&<TextInput value={data.companyName} onChange={v=>set({companyName:v})} placeholder="Company name" />}<Checkbox checked={data.noCompany} onChange={val=>set({noCompany:val,companyName:""})} label="I don't work with a company / I'm an independent owner" /></>};
+    case "website": return {label:data.noCompany?"Does your rental business have a website?":"Does your company have a website?",valid:data.noWebsite||!!data.companyWebsite.trim(),body:<>{!data.noWebsite&&<TextInput value={data.companyWebsite} onChange={v=>set({companyWebsite:v})} placeholder="https://yourcompany.com" />}<Checkbox checked={data.noWebsite} onChange={val=>set({noWebsite:val,companyWebsite:""})} label="We don't have a website" /></>};
+    case "certify": return {label:"Please certify the following:",valid:data.certifyNoDebt&&!data.certifyOwesDebt,body:<><Checkbox checked={data.certifyNoDebt} onChange={val=>set(d=>({certifyNoDebt:val,certifyOwesDebt:val?false:d.certifyOwesDebt}))} label={`I, ${data.fullName||"the undersigned"}, do not owe a debt to Advanced Collection Bureau or any company it is collecting a debt on behalf of, nor am I representing someone who owes a debt to Advanced Collection Bureau.`} /><Checkbox checked={data.certifyOwesDebt} onChange={val=>set(d=>({certifyOwesDebt:val,certifyNoDebt:val?false:d.certifyNoDebt}))} label="I do owe a debt, or am representing someone owing a debt to Advanced Collection Bureau." small />{data.certifyOwesDebt&&<FadeIn delay={100}><div style={{marginTop:18,padding:"20px 24px",background:T.warnBg,border:`1.5px solid ${T.warn}55`,borderRadius:14}}><p style={{color:T.textMid,fontSize:15,fontFamily:FONT,margin:0,lineHeight:1.6}}>Please contact our main office directly at <a href="tel:3216334999" style={{color:T.blue,textDecoration:"none",fontWeight:700}}>(321) 633-4999</a> and we'll be happy to assist you.</p><button type="button" onClick={()=>set({certifyOwesDebt:false})} style={{marginTop:14,padding:"9px 20px",background:"#fff",border:`1px solid ${T.border}`,borderRadius:8,color:T.textMid,fontSize:14,fontFamily:FONT,cursor:"pointer"}}>Go Back</button></div></FadeIn>}</>};
+    case "contact": return {label:"How can we reach you?",sub:"A real member of our team will reach out personally. No automated mailing lists, no spam.",valid:!!data.email.trim()&&data.phone.replace(/\D/g,"").length>=10,body:<><TextInput value={data.email} onChange={v=>set({email:v})} placeholder="Your email address" type="email" /><PhoneInput value={data.phone} onChange={v=>set({phone:v})} /></>};
+    case "priorAgency": return {label:"Have you worked with a debt collection agency before?",valid:!!data.priorAgency,body:<><PillChoice options={["Yes","No"]} value={data.priorAgency} onChange={v=>set({priorAgency:v})} />{data.priorAgency==="Yes"&&<Reply text="We hear that a lot. Many of our clients switched to us after being disappointed elsewhere. With over 40 years specializing in residential rental collections, we think you'll notice the difference." />}{data.priorAgency==="No"&&<Reply text="No worries at all. We'll walk you through the entire process. Over 40 years of experience means we've made it as simple as possible for first-timers." />}</>};
+    case "debtTypes": return {label:"What kind of debts are you looking to get collected?",sub:"Select all that apply",valid:data.debtTypes.length>0&&(!data.debtTypes.includes("Other")||!!(data.customDebtType||"").trim()),body:<><MultiSelect options={DEBT_TYPES} selected={data.debtTypes} onToggle={opt=>toggleIn("debtTypes",opt)} />{data.debtTypes.includes("Other")&&<TextInput value={data.customDebtType||""} onChange={v=>set({customDebtType:v})} placeholder="Describe the type of debt you need collected" />}</>};
+    case "debtsNow": return {label:"Do you have debts you're looking to get collected right now?",valid:!!data.debtsNow,body:<><PillChoice options={["Yes, we have accounts ready","Not yet, but soon"]} value={data.debtsNow} onChange={v=>set({debtsNow:v})} />{data.debtsNow==="Yes, we have accounts ready"&&<Reply text="Great, we'll get those moving fast. Most accounts are contacted within 48 hours of placement." />}{data.debtsNow==="Not yet, but soon"&&<Reply text="No rush. We'll get everything set up so when you're ready, it's as easy as sending us a list." />}</>};
+    case "states": case "nonResStates": return {label:"What states do you operate in?",sub:"Click states or type to search",valid:data.states.length>0,body:<USStateMap selected={data.states} onToggle={(name,bulkSet)=>{if(bulkSet!==undefined)set({states:bulkSet});else toggleIn("states",name);}} />};
+    case "ownership": return {label:"Do you own the properties you manage, or do you manage on behalf of other owners?",valid:!!data.ownershipType,body:<><PillChoice options={["We own them","We manage for others","We own and manage for others"]} value={data.ownershipType} onChange={v=>set({ownershipType:v})} />{data.ownershipType==="We own them"&&<Reply text="Whether it's communities, apartment buildings, townhomes, or single family homes, we've done it all." />}{data.ownershipType==="We manage for others"&&<Reply text="We're experienced with the portfolios of third-party property managers. We will make sure your property owners are happy that debtors aren't getting away without repercussions." />}{data.ownershipType==="We own and manage for others"&&<FadeIn delay={100}><div style={{marginTop:18,padding:"20px 24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}><p style={{color:T.textMid,fontSize:14,fontFamily:FONT,marginBottom:10}}>What percentage of your portfolio do you own?</p><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:T.blue,fontWeight:700,fontSize:22,fontFamily:FONT}}>{data.ownPercent}% own</span><span style={{color:T.textLight,fontWeight:600,fontSize:22,fontFamily:FONT}}>{100-data.ownPercent}% manage</span></div><input type="range" min={0} max={100} value={data.ownPercent} onChange={e=>set({ownPercent:parseInt(e.target.value)})} style={{width:"100%",accentColor:T.blue}}/></div></FadeIn>}</>};
+    case "units": return {label:"How many units do you manage in total?",valid:!!data.totalUnits,body:<TextInput value={data.totalUnits} onChange={v=>set({totalUnits:v.replace(/\D/g,"")})} placeholder="Number of units" autoFocus={first} />};
+    case "rentalTypes": return {label:"What types of residential rentals do you manage?",sub:"Select all that apply",valid:(data.rentalTypes||[]).length>0,body:<MultiSelect options={RENTAL_TYPES} selected={data.rentalTypes||[]} onToggle={opt=>toggleIn("rentalTypes",opt)} />};
+    case "propertyTypes": return {label:"What types of properties are in your portfolio?",sub:"Select all that apply",valid:(data.propertyTypes||[]).length>0,body:<MultiSelect options={PROPERTY_TYPES} selected={data.propertyTypes||[]} onToggle={opt=>toggleIn("propertyTypes",opt)} />};
+    case "avgRent": {
+      const sliderPos=data.rentSliderPos??rentValueToSlider(1500);
+      const rentVal=rentSliderToValue(sliderPos);
+      return {label:"What's the average monthly rental rate per unit?",valid:true,body:<FadeIn><div style={{marginTop:14,padding:"24px",background:"#fff",border:`1.5px solid ${T.border}`,borderRadius:14}}>
+        <div style={{textAlign:"center",marginBottom:16}}><span style={{fontSize:36,fontWeight:700,color:T.blue,fontFamily:FONT}}>{formatRent(rentVal)}</span><span style={{fontSize:14,color:T.textLight,fontFamily:FONT,marginLeft:6}}>/ month</span></div>
+        <input type="range" min={0} max={RENT_TICKS.length-1} value={sliderPos} onChange={e=>{const pos=parseInt(e.target.value);set({rentSliderPos:pos,avgRent:rentSliderToValue(pos)});}} style={{width:"100%",accentColor:T.blue,height:8}} />
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$500</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$2,000</span><span style={{fontSize:11,color:T.textLight,fontFamily:FONT}}>$100,000+</span></div>
+      </div></FadeIn>};
+    }
+    case "listings": return {label:"Where do you list your rentals?",sub:"Select all that apply",valid:data.listingSites.length>0,body:<><MultiSelect options={LISTING_SITES} selected={data.listingSites} onToggle={opt=>toggleIn("listingSites",opt)} />{data.listingSites.includes("Other")&&<TextInput value={data.customListing} onChange={v=>set({customListing:v})} placeholder="Where else do you list?" />}</>};
+    case "pmSoftware": {
+      const none=(data.pmSoftware||[]).includes("None");
+      return {label:"What property management software do you use?",sub:"Select all that apply, or let us know if you don't use any",valid:(data.pmSoftware||[]).length>0,body:<><MultiSelect options={PM_SOFTWARE} selected={data.pmSoftware||[]} onToggle={opt=>setData(d=>{const arr=(d.pmSoftware||[]).filter(x=>x!=="None");return {...d,pmSoftware:arr.includes(opt)?arr.filter(x=>x!==opt):[...arr,opt]};})} />{(data.pmSoftware||[]).includes("Other")&&<TextInput value={data.customPM||""} onChange={v=>set({customPM:v})} placeholder="What software do you use?" />}<div><TogglePill active={none} onClick={()=>set({pmSoftware:none?[]:["None"],customPM:""})} label="We don't use any" /></div></>};
+    }
+    case "comments": return {label:"Do you have any questions or comments for our team?",valid:data.noQuestions||!!(data.comments||"").trim(),body:<>{!data.noQuestions&&<TextArea value={data.comments||""} onChange={v=>set({comments:v})} placeholder="Any questions, comments, or things we should know..." />}<div><TogglePill active={data.noQuestions} onClick={()=>set(d=>({noQuestions:!d.noQuestions,comments:""}))} label="Nope, all good!" /></div></>};
+    default: return null;
+  }
+}
+function GroupContent({steps,data,setData,next}){
+  const hasIntro=steps.indexOf("intro")!==-1;
+  const specs=steps.filter(x=>x!=="intro").map((x,i)=>({step:x,spec:groupQuestion(x,data,setData,i===0)})).filter(x=>x.spec);
+  const allValid=specs.every(x=>x.spec.valid);
+  const isSubmit=steps.indexOf("comments")!==-1;
+  const base=hasIntro?900:100;
+  return <>
+    {hasIntro&&<><RevealText text="We're excited to work with you to get your debt collected." delay={100} className="hero-text" slow /><RevealText text="But first, we'll need some information about you." delay={400} className="sub-text" slow /></>}
+    {specs.map((x,i)=><FadeIn key={x.step} delay={base+i*150}><div className="q-block" style={i===0&&!hasIntro?{marginTop:0,paddingTop:0,borderTop:"none"}:undefined}><p className="q-label">{x.spec.label}</p>{x.spec.sub&&<p className="q-sub">{x.spec.sub}</p>}{x.spec.body}</div></FadeIn>)}
+    <ContinueButton onClick={next} label={isSubmit?"Submit":"Continue"} delay={base+specs.length*150+100} disabled={!allValid} />
+  </>;
+}
+
 /* ═══ FLOW DEFINITIONS ═══ */
 const RESIDENTIAL_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","sellAcbPitch","states","sellContingency","ownership","sellSkipTrace","units","sellRecoverableInsight","sellBigPortfolio","sellUsStaff","rentalTypes","propertyTypes","avgRent","listings","pmSoftware","sellReporting","sellStrategy","comments","done"];
 const NON_RES_SHORT_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","nonResStates","comments","done"];
 const DEDICATED_TEAM_FLOW=["intro","name","company","website","certify","contact","priorAgency","debtTypes","debtsNow","nonResBranch","sellDedicatedTeam","states","sellContingency","ownership","sellSkipTrace","units","sellBigPortfolio","sellUsStaff","sellStrategy","comments","done"];
+// Grouped layouts (groupedQuestions flag): a flow unit is either a single step
+// name or an array of 2-4 steps shown together on one card.
+const GROUPED_START=[["intro","name","company","website"],["certify","contact"],["priorAgency","debtTypes","debtsNow"]];
+const RESIDENTIAL_FLOW_GROUPED=[...GROUPED_START,"sellAcbPitch",["states","ownership"],"sellContingency",["units","rentalTypes"],"sellSkipTrace","sellUsStaff",["propertyTypes","avgRent"],"sellRecoverableInsight","sellBigPortfolio","sellTeamExtension",["listings","pmSoftware"],"sellReporting","sellStrategy","comments","done"];
+const NON_RES_SHORT_FLOW_GROUPED=[...GROUPED_START,"nonResBranch",["nonResStates","comments"],"done"];
+const DEDICATED_TEAM_FLOW_GROUPED=[...GROUPED_START,"nonResBranch","sellDedicatedTeam",["states","ownership"],"sellContingency","units","sellSkipTrace","sellBigPortfolio","sellUsStaff","sellStrategy","comments","done"];
+const unitSteps=u=>Array.isArray(u)?u:[u];
+const unitKey=u=>Array.isArray(u)?u[0]:u;
+const isPitchUnit=u=>typeof u==="string"&&u.indexOf("sell")===0;
+const flowIndexOfStep=(flow,step)=>{for(let i=0;i<flow.length;i++){if(unitSteps(flow[i]).indexOf(step)!==-1)return i;}return -1;};
+const flowKind=f=>flowIndexOfStep(f,"nonResBranch")===-1?"RES":flowIndexOfStep(f,"sellDedicatedTeam")!==-1?"DED":"NONRES";
+const isGroupedFlow=f=>f.some(u=>Array.isArray(u));
+function FLOWS(){const g=!!TRACK.flags.groupedQuestions;return {RES:g?RESIDENTIAL_FLOW_GROUPED:RESIDENTIAL_FLOW,NONRES:g?NON_RES_SHORT_FLOW_GROUPED:NON_RES_SHORT_FLOW,DED:g?DEDICATED_TEAM_FLOW_GROUPED:DEDICATED_TEAM_FLOW};}
 
 /* ═══ MAIN COMPONENT ═══ */
 function LeadIntakeForm(){
   const [stepIndex,setStepIndex]=useState(0);
-  const [flow,setFlow]=useState(RESIDENTIAL_FLOW);
+  const [flow,setFlow]=useState(()=>FLOWS().RES);
   const [data,setData]=useState({fullName:"",companyName:"",noCompany:false,companyWebsite:"",noWebsite:false,certifyNoDebt:false,certifyOwesDebt:false,email:"",phone:"",priorAgency:"",debtTypes:[],customDebtType:"",debtsNow:"",states:[],ownershipType:"",ownPercent:50,totalUnits:"",rentalTypes:[],propertyTypes:[],avgRent:1500,rentSliderPos:rentValueToSlider(1500),listingSites:[],customListing:"",pmSoftware:[],customPM:"",comments:"",noQuestions:false});
   const [textsDone,setTextsDone]=useState({});
   const trackingData=useRef({location:"Loading...",device:"",referrer:"",timezone:"",clarityUrl:""});
@@ -422,6 +547,17 @@ function LeadIntakeForm(){
   const formStartedAt=useRef(new Date().toISOString());
   const apiHealthy=useRef(false);
   const [receiptId,setReceiptId]=useState(null);
+  const stateRef=useRef({flow,stepIndex});stateRef.current={flow,stepIndex};
+  // When the layout flags arrive after first paint (or after a resume), move
+  // the visitor to the matching grouped/ungrouped flow at the same question.
+  const applyLayoutFlags=useCallback(()=>{
+    const {flow:cf,stepIndex:ci}=stateRef.current;
+    const target=FLOWS()[flowKind(cf)];
+    if(isGroupedFlow(cf)===isGroupedFlow(target))return;
+    const curStep=unitKey(cf[ci]||"intro");
+    let idx=flowIndexOfStep(target,curStep);if(idx<0)idx=0;
+    setFlow(target);setStepIndex(idx);
+  },[]);
 
   // Session save/restore. A ?resume=<token> in our URL (or the parent page's
   // URL, read via document.referrer since the iframe is cross-origin) comes
@@ -429,6 +565,7 @@ function LeadIntakeForm(){
   // prefill, reuse the original session id, and drop them at their last step.
   useEffect(()=>{
     const restoreLocal=()=>{
+      if(PREVIEW.active)return;
       try{
         const saved=sessionStorage.getItem("acb_form_progress");
         if(saved){const p=JSON.parse(saved);if(p.data&&p.stepIndex!=null&&p.flow){setData(p.data);setStepIndex(p.stepIndex);setFlow(p.flow);setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});}}
@@ -467,12 +604,13 @@ function LeadIntakeForm(){
         else if(s==='contact_info')stepName='priorAgency';
         else if(s==='debt_types')stepName='debtsNow';
         else if(s==='portfolio_details')stepName='rentalTypes';
-        const flows=[RESIDENTIAL_FLOW,DEDICATED_TEAM_FLOW,NON_RES_SHORT_FLOW];
-        let targetFlow=RESIDENTIAL_FLOW;
-        for(let i=0;i<flows.length;i++){if(flows[i].indexOf(stepName)!==-1){targetFlow=flows[i];break;}}
-        let idx=targetFlow.indexOf(stepName);
+        const F=FLOWS();
+        const flows=[F.RES,F.DED,F.NONRES];
+        let targetFlow=F.RES;
+        for(let i=0;i<flows.length;i++){if(flowIndexOfStep(flows[i],stepName)!==-1){targetFlow=flows[i];break;}}
+        let idx=flowIndexOfStep(targetFlow,stepName);
         if(idx<0)idx=1;
-        if(targetFlow[idx]==='done')idx=Math.max(0,idx-1);
+        if(unitKey(targetFlow[idx])==='done')idx=Math.max(0,idx-1);
         setFlow(targetFlow);
         setStepIndex(idx);
         setTextsDone({a:true,b:true,c:true,sell_done:true,list_q:true});
@@ -481,7 +619,7 @@ function LeadIntakeForm(){
       .catch(()=>{restoreLocal();});
   },[]);
   useEffect(()=>{
-    if(flow[stepIndex]==="done")return;
+    if(PREVIEW.active||unitKey(flow[stepIndex]||"done")==="done")return;
     try{sessionStorage.setItem("acb_form_progress",JSON.stringify({data,stepIndex,flow}));}catch(e){}
   },[data,stepIndex,flow]);
 
@@ -510,23 +648,26 @@ function LeadIntakeForm(){
     });
 
     // Health check for Lead Console API
-    fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';if(d.status==='ok'){fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'form_opened',form_version:FORM_VERSION,fields:{},metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent}})}).catch(()=>{});}}).catch(()=>{apiHealthy.current=false;});
+    if(!PREVIEW.active)fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';if(d.status==='ok'){fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'form_opened',form_version:FORM_VERSION,fields:{},metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent}})}).catch(()=>{});}}).catch(()=>{apiHealthy.current=false;});
 
     // Flow tracking: assign experiment variants, then start batching events.
     TRACK.sessionId=sessionId.current;
     TRACK.context={referrer:trackingData.current.referrer||null,device:trackingData.current.device||null,source_page:window.location.href};
-    fetch(LEAD_CONSOLE_API+'/api/form/config',{mode:'cors'}).then(r=>r.json()).then(cfg=>{
-      const a=assignVariants(cfg&&cfg.experiments,sessionId.current);
-      TRACK.variants=a.variants;TRACK.flags=a.flags;
-      track('view',null,{variants:a.variants});
-    }).catch(()=>{track('view',null,null);});
+    if(!PREVIEW.active){
+      fetch(LEAD_CONSOLE_API+'/api/form/config',{mode:'cors'}).then(r=>r.json()).then(cfg=>{
+        const a=assignVariants(cfg&&cfg.experiments,sessionId.current);
+        TRACK.variants=a.variants;TRACK.flags=a.flags;
+        applyLayoutFlags();
+        track('view',null,{variants:a.variants});
+      }).catch(()=>{track('view',null,null);});
+    }
     const flushInterval=setInterval(flushTrack,5000);
     const onHide=()=>{if(!formSubmitted.current){track('abandon',null,{step:document.__acbCurrentStep||null});}flushTrack();};
     window.addEventListener('pagehide',onHide);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushTrack();});
 
     // Heartbeat interval
-    const heartbeatInterval=setInterval(()=>{if(!formSubmitted.current){fetch(LEAD_CONSOLE_API+'/api/leads/heartbeat',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({session_id:sessionId.current})}).catch(()=>{});}},30000);
+    const heartbeatInterval=setInterval(()=>{if(!formSubmitted.current&&!PREVIEW.active){fetch(LEAD_CONSOLE_API+'/api/leads/heartbeat',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({session_id:sessionId.current})}).catch(()=>{});}},30000);
 
     // Microsoft Clarity session URL
     try{
@@ -548,14 +689,15 @@ function LeadIntakeForm(){
   // Step transitions: one effect covers every way the step can change.
   const prevStepRef=useRef(null);
   useEffect(()=>{
-    const cur=flow[stepIndex];
-    if(!cur)return;
+    const unit=flow[stepIndex];
+    if(!unit)return;
+    const cur=unitKey(unit);
     const nowTs=Date.now();
     if(prevStepRef.current&&prevStepRef.current!==cur){
       track('step_exit',prevStepRef.current,{dwell_ms:nowTs-TRACK.stepEnteredAt});
     }
     if(prevStepRef.current!==cur){
-      track(cur.indexOf('sell')===0?'pitch_view':'step_enter',cur,{index:stepIndex,flow_len:flow.length});
+      track(isPitchUnit(unit)?'pitch_view':'step_enter',cur,{index:stepIndex,flow_len:flow.length,group:Array.isArray(unit)?unit:undefined});
       TRACK.stepEnteredAt=nowTs;
       prevStepRef.current=cur;
       document.__acbCurrentStep=cur;
@@ -565,25 +707,25 @@ function LeadIntakeForm(){
   // Partial capture helper
   const sendPartial=useCallback((stepName,fields)=>{
     if(honeypotRef.current&&honeypotRef.current.value)return; // honeypot: skip partial/abandon leads for bots
-    if(!apiHealthy.current)return;
+    if(PREVIEW.active||!apiHealthy.current)return;
     fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer,experiment_variants:TRACK.variants}})}).catch(()=>{});
   },[]);
 
   // Abandonment: fire partial submit on page unload if we have contact info
   useEffect(()=>{
     const handleUnload=()=>{
-      if(hasContactInfo.current&&!formSubmitted.current){
+      if(hasContactInfo.current&&!formSubmitted.current&&!PREVIEW.active){
         // Send partial to Lead Console API
-        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer,experiment_variants:TRACK.variants}});
+        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+unitKey(flow[stepIndex]||"done"),form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer,experiment_variants:TRACK.variants}});
         if(apiHealthy.current){navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/partial',new Blob([abandonPayload],{type:'application/json'}));}
         // Also still send to FormSubmit as backup
         if(FORMSUBMIT_ID){
           const t=trackingData.current;
           const partial={
-            "_subject":"[PARTIAL] "+data.fullName+(data.companyName?" - "+data.companyName:"")+" (abandoned at: "+flow[stepIndex]+")",
+            "_subject":"[PARTIAL] "+data.fullName+(data.companyName?" - "+data.companyName:"")+" (abandoned at: "+unitKey(flow[stepIndex]||"done")+")",
             "Name":data.fullName,"Company":data.noCompany?"(Independent)":data.companyName,
             "Email":data.email,"Phone":data.phone,
-            "Last Step":flow[stepIndex],"Location":t.location,"Device":t.device,
+            "Last Step":unitKey(flow[stepIndex]||"done"),"Location":t.location,"Device":t.device,
             _captcha:"false",_template:"table",_replyto:data.email
           };
           if(CC_EMAILS)partial._cc=CC_EMAILS;
@@ -596,7 +738,8 @@ function LeadIntakeForm(){
   },[data,stepIndex,flow]);
 
   const markTextDone=useCallback((id)=>{setTextsDone(prev=>({...prev,[id]:true}));},[]);
-  const currentStep=flow[stepIndex]||"done";
+  const currentUnit=flow[stepIndex]||"done";
+  const currentStep=unitKey(currentUnit);
 
   // Build FormSubmit email payload (used by primary submission and backup)
   const buildFormSubmitPayload=useCallback((formData)=>{
@@ -633,6 +776,7 @@ function LeadIntakeForm(){
     // Spam honeypot: a filled hidden field means a bot. Mark done, log, and skip all network calls.
     if(honeypotRef.current&&honeypotRef.current.value){formSubmitted.current=true;console.log("Honeypot triggered — lead discarded");return;}
     formSubmitted.current=true;
+    if(PREVIEW.active){console.log("Preview mode: submission skipped");return;}
     track('submit',null,{variants:TRACK.variants});flushTrack();
     try{sessionStorage.removeItem("acb_form_progress");}catch(e){}
 
@@ -713,37 +857,40 @@ function LeadIntakeForm(){
 
   const next=useCallback(()=>{
     setTextsDone({});
-    const curStep=flow[stepIndex];
+    const steps=unitSteps(flow[stepIndex]||"done");
+    const has=x=>steps.indexOf(x)!==-1;
     // Mark contact info collected for abandonment tracking + send partial
-    if(curStep==="contact"){
+    if(has("contact")){
       hasContactInfo.current=true;
       sendPartial('contact_info',{full_name:data.fullName,first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,company_website:data.noWebsite?'':data.companyWebsite});
     }
     // Send partial after debt types selection
-    if(curStep==="debtTypes"){
+    if(has("debtTypes")){
       sendPartial('debt_types',{full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,debt_types:data.debtTypes,custom_debt_type:data.customDebtType});
     }
     // Send partial after units (portfolio details)
-    if(curStep==="units"){
+    if(has("units")){
       sendPartial('portfolio_details',{full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName,debt_types:data.debtTypes,states:data.states,ownership_type:data.ownershipType,total_units:data.totalUnits});
     }
     // Branch after debtsNow
-    if(curStep==="debtsNow"){
-      if(data.debtTypes.includes("Residential Rental Debt")){setFlow(RESIDENTIAL_FLOW);let n=RESIDENTIAL_FLOW.indexOf("debtsNow")+1;if(TRACK.flags.skipPitchScreens){while(RESIDENTIAL_FLOW[n]&&RESIDENTIAL_FLOW[n].indexOf('sell')===0)n++;}setStepIndex(n);}
-      else{setFlow(NON_RES_SHORT_FLOW);setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));}
+    if(has("debtsNow")){
+      const F=FLOWS();
+      if(data.debtTypes.includes("Residential Rental Debt")){setFlow(F.RES);let n=flowIndexOfStep(F.RES,"debtsNow")+1;if(TRACK.flags.skipPitchScreens){while(F.RES[n]&&isPitchUnit(F.RES[n]))n++;}setStepIndex(n);}
+      else{setFlow(F.NONRES);setStepIndex(flowIndexOfStep(F.NONRES,"nonResBranch"));}
       window.scrollTo({top:0,behavior:"smooth"});return;
     }
-    if(curStep==="comments")submitForm(data);
-    setStepIndex(i=>{let n=i+1;if(TRACK.flags.skipPitchScreens){while(flow[n]&&flow[n].indexOf('sell')===0)n++;}return n;});
+    if(has("comments"))submitForm(data);
+    setStepIndex(i=>{let n=i+1;if(TRACK.flags.skipPitchScreens){while(flow[n]&&isPitchUnit(flow[n]))n++;}return n;});
     window.scrollTo({top:0,behavior:"smooth"});
   },[data,submitForm,sendPartial,flow,stepIndex]);
 
   const goTo=useCallback((stepName)=>{
     setTextsDone({});
-    if(stepName==="sellDedicatedTeam"){setFlow(DEDICATED_TEAM_FLOW);setStepIndex(DEDICATED_TEAM_FLOW.indexOf("sellDedicatedTeam"));}
-    else if(stepName==="sellAcbPitch"){setFlow(RESIDENTIAL_FLOW);setStepIndex(RESIDENTIAL_FLOW.indexOf("sellAcbPitch"));}
-    else if(stepName==="nonResStates"){setFlow(NON_RES_SHORT_FLOW);setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResStates"));}
-    else{const idx=flow.indexOf(stepName);if(idx>=0)setStepIndex(idx);}
+    const F=FLOWS();
+    if(stepName==="sellDedicatedTeam"){setFlow(F.DED);setStepIndex(flowIndexOfStep(F.DED,"sellDedicatedTeam"));}
+    else if(stepName==="sellAcbPitch"){setFlow(F.RES);setStepIndex(flowIndexOfStep(F.RES,"sellAcbPitch"));}
+    else if(stepName==="nonResStates"){setFlow(F.NONRES);setStepIndex(flowIndexOfStep(F.NONRES,"nonResStates"));}
+    else{const idx=flowIndexOfStep(flow,stepName);if(idx>=0)setStepIndex(idx);}
     window.scrollTo({top:0,behavior:"smooth"});
   },[flow]);
 
@@ -770,19 +917,25 @@ function LeadIntakeForm(){
       .continue-btn:disabled{background:#D0D3DC !important;color:#8889A0 !important;box-shadow:none !important;}
       .back-btn{position:fixed;bottom:28px;left:28px;padding:10px 22px;background:${T.card};border:1px solid ${T.border};border-radius:50px;color:${T.textLight};font-size:13px;font-family:${FONT};font-weight:500;cursor:pointer;transition:all 0.3s;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
       .back-btn:hover{color:${T.textMid};border-color:${T.blue}44;}
+      .q-block{margin-top:28px;padding-top:24px;border-top:1px solid ${T.border};}
+      .q-label{font-size:19px;font-weight:600;color:${T.text};line-height:1.4;letter-spacing:-0.01em;}
+      .q-sub{font-size:13px;color:${T.textLight};margin-top:4px;}
+      .preview-badge{position:fixed;bottom:28px;right:28px;z-index:120;padding:6px 12px;border-radius:50px;background:${T.text};color:#fff;font-size:12px;font-family:${FONT};font-weight:500;opacity:0.85;pointer-events:none;}
       @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1;}100%{transform:translateY(100vh) rotate(720deg);opacity:0;}}
       @keyframes logo-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
       @media(max-width:900px){.step-card{max-width:680px;padding:40px 40px;}}
-      @media(max-width:640px){.hero-text{font-size:22px;}.step-card{padding:28px 20px;border-radius:16px;max-width:100%;}.form-outer{padding:16px 12px 48px;}}
+      @media(max-width:640px){.hero-text{font-size:22px;}.q-label{font-size:17px;}.preview-badge{bottom:12px;right:12px;}.step-card{padding:28px 20px;border-radius:16px;max-width:100%;}.form-outer{padding:16px 12px 48px;}}
     `}</style>
     <ProgressBar progress={progress} />
+    {PREVIEW.active&&<div className="preview-badge">Preview · {PREVIEW.label}</div>}
     {/* Spam honeypot — visually hidden, off-screen, not tabbable, hidden from screen readers. Real users never fill it; bots do. Checked in submitForm/sendPartial. */}
     <input ref={honeypotRef} type="text" name="company_website_2" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{position:"absolute",left:"-9999px",top:0,width:"1px",height:"1px",opacity:0,pointerEvents:"none"}} />
     <div className="form-outer">
-      <div className="step-card"><StepContent key={currentStep+stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} receiptId={receiptId} /></div>
+      <div className="step-card">{Array.isArray(currentUnit)
+        ?<GroupContent key={currentStep+stepIndex} steps={currentUnit} data={data} setData={setData} next={next} />
+        :<StepContent key={currentStep+stepIndex} step={currentStep} data={data} setData={setData} goTo={goTo} next={next} back={back} markTextDone={markTextDone} textsDone={textsDone} receiptId={receiptId} />}</div>
       {stepIndex>0&&currentStep!=="done"&&<button className="back-btn" onClick={back}>Back</button>}
     </div>
   </>;
 }
-
 export default LeadIntakeForm;
