@@ -12,6 +12,39 @@
     const FORM_API_KEY = 'acb-form-secret-2026';
     const FORM_VERSION = '1.0';
 
+    /* ═══ FLOW TRACKING + EXPERIMENTS ═══
+     * Every step change, pitch screen, submit, and abandon is batched to the
+     * Lead Console so the Form Funnel report and A/B experiments have data.
+     * Variants are assigned deterministically from the session id, so a
+     * visitor always sees the same variant, without a server round trip.
+     */
+    const TRACK={queue:[],variants:{},flags:{},stepEnteredAt:Date.now(),sessionId:null,started:Date.now(),context:{}};
+    function trackHash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)%10000;}
+    function assignVariants(experiments,sessionId){
+      const variants={},flags={};
+      (experiments||[]).forEach(exp=>{
+        if(!exp||exp.status!=='running'||!Array.isArray(exp.variants)||!exp.variants.length)return;
+        const total=exp.variants.reduce((a,v)=>a+(Number(v.weight)||0),0)||exp.variants.length;
+        let roll=(trackHash(sessionId+':'+exp.key)/10000)*total,chosen=exp.variants[exp.variants.length-1];
+        for(const v of exp.variants){const w=Number(v.weight)||(total===exp.variants.length?1:0);if(roll<w){chosen=v;break;}roll-=w;}
+        variants[exp.key]=chosen.key;
+        Object.assign(flags,chosen.flags||{});
+      });
+      return {variants,flags};
+    }
+    function track(type,step,meta){
+      TRACK.queue.push({type,step:step||null,at:new Date().toISOString(),elapsed_ms:Date.now()-TRACK.started,meta:meta||null});
+      if(TRACK.queue.length>=20)flushTrack();
+    }
+    function flushTrack(){
+      if(!TRACK.queue.length||!TRACK.sessionId)return;
+      const events=TRACK.queue.splice(0,TRACK.queue.length);
+      const body=JSON.stringify({session_id:TRACK.sessionId,form_version:FORM_VERSION,context:Object.assign({variants:TRACK.variants},TRACK.context),events});
+      try{
+        fetch(LEAD_CONSOLE_API+'/api/form/events',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body}).catch(()=>{});
+      }catch(e){}
+    }
+
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
 "MA":"m 956.31178,153.05085 -0.29118,-0.19412 0,0.29119 0.29118,-0.0971 z m -2.91189,-2.6207 0.67944,-0.29119 0,-0.38825 -0.67944,0.67944 z m 12.03583,-7.57092 -0.0971,-1.35889 -0.19412,-0.7765 0.29119,2.13539 z m -42.41659,-9.9975 -0.67944,0.29119 -5.5326,1.65007 -1.94126,0.67944 -2.23245,0.67944 -0.7765,0.29119 0,0.29119 0.29118,5.04728 0.29119,4.65903 0.29119,4.27078 0.48532,0.29119 1.74714,-0.48532 7.86211,-2.32951 0.19412,0.48531 13.97709,-5.33847 0.0971,0.19413 1.26182,-0.48532 4.4649,-1.74713 4.27078,5.14434 0,0 0.58238,-0.48531 0.29119,-1.45595 -0.0971,2.32952 0,0 0.97063,0 0.29119,1.16475 0.87357,1.65008 0,0 4.56197,-5.5326 3.78546,1.26182 0.87357,-1.94126 6.21204,-3.30015 -2.62071,-5.14435 0.67945,3.30015 -3.20309,2.42658 -3.59133,0.29119 -7.18267,-7.66799 -3.20309,-4.85315 3.20309,-3.39721 -3.30015,-0.19413 -1.35888,-3.20308 -0.0971,-0.19413 -5.53259,6.01791 -12.22996,4.07666 -3.97959,1.26182 0,0 z",
@@ -410,7 +443,8 @@ function LeadIntakeForm(){
       .then(r=>r.ok?r.json():null)
       .then(res=>{
         if(!res||!res.success){restoreLocal();return;}
-        if(res.session_id)sessionId.current=res.session_id;
+        if(res.session_id){sessionId.current=res.session_id;TRACK.sessionId=res.session_id;}
+        track('resume',res.step||null,null);
         const f=res.fields||{};
         setData(d=>{
           const nd={...d};
@@ -478,6 +512,19 @@ function LeadIntakeForm(){
     // Health check for Lead Console API
     fetch(LEAD_CONSOLE_API+'/api/health',{method:'GET',mode:'cors'}).then(r=>r.json()).then(d=>{apiHealthy.current=d.status==='ok';if(d.status==='ok'){fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'form_opened',form_version:FORM_VERSION,fields:{},metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent}})}).catch(()=>{});}}).catch(()=>{apiHealthy.current=false;});
 
+    // Flow tracking: assign experiment variants, then start batching events.
+    TRACK.sessionId=sessionId.current;
+    TRACK.context={referrer:trackingData.current.referrer||null,device:trackingData.current.device||null,source_page:window.location.href};
+    fetch(LEAD_CONSOLE_API+'/api/form/config',{mode:'cors'}).then(r=>r.json()).then(cfg=>{
+      const a=assignVariants(cfg&&cfg.experiments,sessionId.current);
+      TRACK.variants=a.variants;TRACK.flags=a.flags;
+      track('view',null,{variants:a.variants});
+    }).catch(()=>{track('view',null,null);});
+    const flushInterval=setInterval(flushTrack,5000);
+    const onHide=()=>{if(!formSubmitted.current){track('abandon',null,{step:document.__acbCurrentStep||null});}flushTrack();};
+    window.addEventListener('pagehide',onHide);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushTrack();});
+
     // Heartbeat interval
     const heartbeatInterval=setInterval(()=>{if(!formSubmitted.current){fetch(LEAD_CONSOLE_API+'/api/leads/heartbeat',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({session_id:sessionId.current})}).catch(()=>{});}},30000);
 
@@ -495,14 +542,31 @@ function LeadIntakeForm(){
       const clCookie=cookies.find(c=>c.startsWith("_clsk="));
       if(clCookie){const val=clCookie.split("=")[1];const sessionId=val.split("|")[0];if(sessionId)trackingData.current.clarityUrl=trackingData.current.clarityUrl||`https://clarity.microsoft.com/projects/${CLARITY_PROJECT_ID}/sessions/${sessionId}`;}
     }catch(e){}
-    return()=>{clearInterval(heartbeatInterval);};
+    return()=>{clearInterval(heartbeatInterval);clearInterval(flushInterval);window.removeEventListener('pagehide',onHide);};
   },[]);
+
+  // Step transitions: one effect covers every way the step can change.
+  const prevStepRef=useRef(null);
+  useEffect(()=>{
+    const cur=flow[stepIndex];
+    if(!cur)return;
+    const nowTs=Date.now();
+    if(prevStepRef.current&&prevStepRef.current!==cur){
+      track('step_exit',prevStepRef.current,{dwell_ms:nowTs-TRACK.stepEnteredAt});
+    }
+    if(prevStepRef.current!==cur){
+      track(cur.indexOf('sell')===0?'pitch_view':'step_enter',cur,{index:stepIndex,flow_len:flow.length});
+      TRACK.stepEnteredAt=nowTs;
+      prevStepRef.current=cur;
+      document.__acbCurrentStep=cur;
+    }
+  },[stepIndex,flow]);
 
   // Partial capture helper
   const sendPartial=useCallback((stepName,fields)=>{
     if(honeypotRef.current&&honeypotRef.current.value)return; // honeypot: skip partial/abandon leads for bots
     if(!apiHealthy.current)return;
-    fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer}})}).catch(()=>{});
+    fetch(LEAD_CONSOLE_API+'/api/leads/partial',{method:'POST',headers:{'Content-Type':'application/json','X-ACB-Form-Key':FORM_API_KEY},body:JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:stepName,form_version:FORM_VERSION,fields:fields,metadata:{source:'acb-intake-form',source_page:window.location.href,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer,experiment_variants:TRACK.variants}})}).catch(()=>{});
   },[]);
 
   // Abandonment: fire partial submit on page unload if we have contact info
@@ -510,7 +574,7 @@ function LeadIntakeForm(){
     const handleUnload=()=>{
       if(hasContactInfo.current&&!formSubmitted.current){
         // Send partial to Lead Console API
-        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer}});
+        const abandonPayload=JSON.stringify({submission_id:crypto.randomUUID?crypto.randomUUID():Date.now().toString(),session_id:sessionId.current,is_partial:true,partial_step:'abandoned_at_'+flow[stepIndex],form_version:FORM_VERSION,fields:{first_name:data.fullName.split(' ')[0]||'',last_name:data.fullName.split(' ').slice(1).join(' ')||'',full_name:data.fullName,email:data.email,phone:data.phone,company_name:data.noCompany?'(Independent)':data.companyName},metadata:{source:'acb-intake-form',source_page:window.location.href,abandoned:true,user_agent:navigator.userAgent,device:trackingData.current.device,location:trackingData.current.location,timezone:trackingData.current.timezone,referrer:trackingData.current.referrer,experiment_variants:TRACK.variants}});
         if(apiHealthy.current){navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/partial',new Blob([abandonPayload],{type:'application/json'}));}
         // Also still send to FormSubmit as backup
         if(FORMSUBMIT_ID){
@@ -569,6 +633,7 @@ function LeadIntakeForm(){
     // Spam honeypot: a filled hidden field means a bot. Mark done, log, and skip all network calls.
     if(honeypotRef.current&&honeypotRef.current.value){formSubmitted.current=true;console.log("Honeypot triggered — lead discarded");return;}
     formSubmitted.current=true;
+    track('submit',null,{variants:TRACK.variants});flushTrack();
     try{sessionStorage.removeItem("acb_form_progress");}catch(e){}
 
     const submissionId=crypto.randomUUID?crypto.randomUUID():Date.now().toString()+Math.random().toString(36);
@@ -602,6 +667,7 @@ function LeadIntakeForm(){
         device:trackingData.current.device,
         timezone:trackingData.current.timezone,
         clarity_url:trackingData.current.clarityUrl,
+        experiment_variants:TRACK.variants,
         clarity_session_id:(()=>{try{let csid=null;if(window.clarity){window.clarity('get','sessionId',(id)=>{csid=id;});}return csid;}catch(e){return null;}})()
       }
     };
@@ -663,12 +729,12 @@ function LeadIntakeForm(){
     }
     // Branch after debtsNow
     if(curStep==="debtsNow"){
-      if(data.debtTypes.includes("Residential Rental Debt")){setFlow(RESIDENTIAL_FLOW);setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow")+1);}
+      if(data.debtTypes.includes("Residential Rental Debt")){setFlow(RESIDENTIAL_FLOW);let n=RESIDENTIAL_FLOW.indexOf("debtsNow")+1;if(TRACK.flags.skipPitchScreens){while(RESIDENTIAL_FLOW[n]&&RESIDENTIAL_FLOW[n].indexOf('sell')===0)n++;}setStepIndex(n);}
       else{setFlow(NON_RES_SHORT_FLOW);setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));}
       window.scrollTo({top:0,behavior:"smooth"});return;
     }
     if(curStep==="comments")submitForm(data);
-    setStepIndex(i=>i+1);
+    setStepIndex(i=>{let n=i+1;if(TRACK.flags.skipPitchScreens){while(flow[n]&&flow[n].indexOf('sell')===0)n++;}return n;});
     window.scrollTo({top:0,behavior:"smooth"});
   },[data,submitForm,sendPartial,flow,stepIndex]);
 

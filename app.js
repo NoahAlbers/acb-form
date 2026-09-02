@@ -16,6 +16,87 @@ const CLARITY_PROJECT_ID = "qo6gcqjdc7";
 const LEAD_CONSOLE_API = 'https://www.advancedcb.app';
 const FORM_API_KEY = 'acb-form-secret-2026';
 const FORM_VERSION = '1.0';
+
+/* ═══ FLOW TRACKING + EXPERIMENTS ═══
+ * Every step change, pitch screen, submit, and abandon is batched to the
+ * Lead Console so the Form Funnel report and A/B experiments have data.
+ * Variants are assigned deterministically from the session id, so a
+ * visitor always sees the same variant, without a server round trip.
+ */
+const TRACK = {
+  queue: [],
+  variants: {},
+  flags: {},
+  stepEnteredAt: Date.now(),
+  sessionId: null,
+  started: Date.now(),
+  context: {}
+};
+function trackHash(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % 10000;
+}
+function assignVariants(experiments, sessionId) {
+  const variants = {},
+    flags = {};
+  (experiments || []).forEach(exp => {
+    if (!exp || exp.status !== 'running' || !Array.isArray(exp.variants) || !exp.variants.length) return;
+    const total = exp.variants.reduce((a, v) => a + (Number(v.weight) || 0), 0) || exp.variants.length;
+    let roll = trackHash(sessionId + ':' + exp.key) / 10000 * total,
+      chosen = exp.variants[exp.variants.length - 1];
+    for (const v of exp.variants) {
+      const w = Number(v.weight) || (total === exp.variants.length ? 1 : 0);
+      if (roll < w) {
+        chosen = v;
+        break;
+      }
+      roll -= w;
+    }
+    variants[exp.key] = chosen.key;
+    Object.assign(flags, chosen.flags || {});
+  });
+  return {
+    variants,
+    flags
+  };
+}
+function track(type, step, meta) {
+  TRACK.queue.push({
+    type,
+    step: step || null,
+    at: new Date().toISOString(),
+    elapsed_ms: Date.now() - TRACK.started,
+    meta: meta || null
+  });
+  if (TRACK.queue.length >= 20) flushTrack();
+}
+function flushTrack() {
+  if (!TRACK.queue.length || !TRACK.sessionId) return;
+  const events = TRACK.queue.splice(0, TRACK.queue.length);
+  const body = JSON.stringify({
+    session_id: TRACK.sessionId,
+    form_version: FORM_VERSION,
+    context: Object.assign({
+      variants: TRACK.variants
+    }, TRACK.context),
+    events
+  });
+  try {
+    fetch(LEAD_CONSOLE_API + '/api/form/events', {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-ACB-Form-Key': FORM_API_KEY
+      },
+      body
+    }).catch(() => {});
+  } catch (e) {}
+}
 const STATE_NAMES = {
   "MA": "Massachusetts",
   "MN": "Minnesota",
@@ -2535,7 +2616,11 @@ function LeadIntakeForm() {
         restoreLocal();
         return;
       }
-      if (res.session_id) sessionId.current = res.session_id;
+      if (res.session_id) {
+        sessionId.current = res.session_id;
+        TRACK.sessionId = res.session_id;
+      }
+      track('resume', res.step || null, null);
       const f = res.fields || {};
       setData(d => {
         const nd = {
@@ -2689,6 +2774,39 @@ function LeadIntakeForm() {
       apiHealthy.current = false;
     });
 
+    // Flow tracking: assign experiment variants, then start batching events.
+    TRACK.sessionId = sessionId.current;
+    TRACK.context = {
+      referrer: trackingData.current.referrer || null,
+      device: trackingData.current.device || null,
+      source_page: window.location.href
+    };
+    fetch(LEAD_CONSOLE_API + '/api/form/config', {
+      mode: 'cors'
+    }).then(r => r.json()).then(cfg => {
+      const a = assignVariants(cfg && cfg.experiments, sessionId.current);
+      TRACK.variants = a.variants;
+      TRACK.flags = a.flags;
+      track('view', null, {
+        variants: a.variants
+      });
+    }).catch(() => {
+      track('view', null, null);
+    });
+    const flushInterval = setInterval(flushTrack, 5000);
+    const onHide = () => {
+      if (!formSubmitted.current) {
+        track('abandon', null, {
+          step: document.__acbCurrentStep || null
+        });
+      }
+      flushTrack();
+    };
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushTrack();
+    });
+
     // Heartbeat interval
     const heartbeatInterval = setInterval(() => {
       if (!formSubmitted.current) {
@@ -2725,8 +2843,32 @@ function LeadIntakeForm() {
     } catch (e) {}
     return () => {
       clearInterval(heartbeatInterval);
+      clearInterval(flushInterval);
+      window.removeEventListener('pagehide', onHide);
     };
   }, []);
+
+  // Step transitions: one effect covers every way the step can change.
+  const prevStepRef = useRef(null);
+  useEffect(() => {
+    const cur = flow[stepIndex];
+    if (!cur) return;
+    const nowTs = Date.now();
+    if (prevStepRef.current && prevStepRef.current !== cur) {
+      track('step_exit', prevStepRef.current, {
+        dwell_ms: nowTs - TRACK.stepEnteredAt
+      });
+    }
+    if (prevStepRef.current !== cur) {
+      track(cur.indexOf('sell') === 0 ? 'pitch_view' : 'step_enter', cur, {
+        index: stepIndex,
+        flow_len: flow.length
+      });
+      TRACK.stepEnteredAt = nowTs;
+      prevStepRef.current = cur;
+      document.__acbCurrentStep = cur;
+    }
+  }, [stepIndex, flow]);
 
   // Partial capture helper
   const sendPartial = useCallback((stepName, fields) => {
@@ -2752,7 +2894,8 @@ function LeadIntakeForm() {
           device: trackingData.current.device,
           location: trackingData.current.location,
           timezone: trackingData.current.timezone,
-          referrer: trackingData.current.referrer
+          referrer: trackingData.current.referrer,
+          experiment_variants: TRACK.variants
         }
       })
     }).catch(() => {});
@@ -2785,7 +2928,8 @@ function LeadIntakeForm() {
             device: trackingData.current.device,
             location: trackingData.current.location,
             timezone: trackingData.current.timezone,
-            referrer: trackingData.current.referrer
+            referrer: trackingData.current.referrer,
+            experiment_variants: TRACK.variants
           }
         });
         if (apiHealthy.current) {
@@ -2890,6 +3034,10 @@ function LeadIntakeForm() {
       return;
     }
     formSubmitted.current = true;
+    track('submit', null, {
+      variants: TRACK.variants
+    });
+    flushTrack();
     try {
       sessionStorage.removeItem("acb_form_progress");
     } catch (e) {}
@@ -2925,6 +3073,7 @@ function LeadIntakeForm() {
         device: trackingData.current.device,
         timezone: trackingData.current.timezone,
         clarity_url: trackingData.current.clarityUrl,
+        experiment_variants: TRACK.variants,
         clarity_session_id: (() => {
           try {
             let csid = null;
@@ -3104,7 +3253,11 @@ function LeadIntakeForm() {
     if (curStep === "debtsNow") {
       if (data.debtTypes.includes("Residential Rental Debt")) {
         setFlow(RESIDENTIAL_FLOW);
-        setStepIndex(RESIDENTIAL_FLOW.indexOf("debtsNow") + 1);
+        let n = RESIDENTIAL_FLOW.indexOf("debtsNow") + 1;
+        if (TRACK.flags.skipPitchScreens) {
+          while (RESIDENTIAL_FLOW[n] && RESIDENTIAL_FLOW[n].indexOf('sell') === 0) n++;
+        }
+        setStepIndex(n);
       } else {
         setFlow(NON_RES_SHORT_FLOW);
         setStepIndex(NON_RES_SHORT_FLOW.indexOf("nonResBranch"));
@@ -3116,7 +3269,13 @@ function LeadIntakeForm() {
       return;
     }
     if (curStep === "comments") submitForm(data);
-    setStepIndex(i => i + 1);
+    setStepIndex(i => {
+      let n = i + 1;
+      if (TRACK.flags.skipPitchScreens) {
+        while (flow[n] && flow[n].indexOf('sell') === 0) n++;
+      }
+      return n;
+    });
     window.scrollTo({
       top: 0,
       behavior: "smooth"
