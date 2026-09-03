@@ -30,7 +30,8 @@ const TRACK = {
   stepEnteredAt: Date.now(),
   sessionId: null,
   started: Date.now(),
-  context: {}
+  context: {},
+  answers: null
 };
 function trackHash(str) {
   let h = 2166136261;
@@ -82,7 +83,8 @@ function flushTrack() {
     session_id: TRACK.sessionId,
     form_version: FORM_VERSION,
     context: Object.assign({
-      variants: TRACK.variants
+      variants: TRACK.variants,
+      answers: TRACK.answers
     }, TRACK.context),
     events
   });
@@ -170,6 +172,47 @@ const SPEED = () => TRACK.flags.fastTransitions ? 0.35 : 1;
 // A heartbeat for the console's live view. Pings are not stored as events;
 // they only refresh "last seen" so staff can tell who is on the form right
 // now. Skipped while the tab is hidden so a background tab looks idle.
+/* ═══ ONE VISIT, EVEN IF THEY LEAVE AND COME BACK ═══
+ * The session id lives in localStorage for a day, so closing the tab and
+ * returning later continues the same session instead of starting a second
+ * one. A fresh id is minted after a completed submission, or once the
+ * saved one is older than SESSION_TTL_MS.
+ */
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+function newSessionId() {
+  return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : r & 3 | 8).toString(16);
+  });
+}
+function resolveSessionId() {
+  try {
+    const saved = localStorage.getItem('acb_session_id');
+    const at = parseInt(localStorage.getItem('acb_session_at') || '0', 10);
+    if (saved && at && Date.now() - at < SESSION_TTL_MS) {
+      localStorage.setItem('acb_session_at', String(Date.now()));
+      return {
+        id: saved,
+        returning: true
+      };
+    }
+  } catch (e) {}
+  const id = newSessionId();
+  try {
+    localStorage.setItem('acb_session_id', id);
+    localStorage.setItem('acb_session_at', String(Date.now()));
+  } catch (e) {}
+  return {
+    id,
+    returning: false
+  };
+}
+function clearSessionId() {
+  try {
+    localStorage.removeItem('acb_session_id');
+    localStorage.removeItem('acb_session_at');
+  } catch (e) {}
+}
 function pingTrack() {
   if (PREVIEW.active || !TRACK.sessionId) return;
   if (document.visibilityState !== 'visible') return;
@@ -3305,10 +3348,11 @@ function LeadIntakeForm() {
   const hasContactInfo = useRef(false);
   const formSubmitted = useRef(false);
   const honeypotRef = useRef(null); // spam honeypot — bots fill the hidden field in the render below; humans never see it
-  const sessionId = useRef(crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    return (c === 'x' ? r : r & 3 | 8).toString(16);
-  }));
+  const sessionStart = useRef(PREVIEW.active ? {
+    id: 'preview',
+    returning: false
+  } : resolveSessionId());
+  const sessionId = useRef(sessionStart.current.id);
   const formStartedAt = useRef(new Date().toISOString());
   const apiHealthy = useRef(false);
   const [receiptId, setReceiptId] = useState(null);
@@ -3344,7 +3388,7 @@ function LeadIntakeForm() {
     const restoreLocal = () => {
       if (PREVIEW.active) return;
       try {
-        const saved = sessionStorage.getItem("acb_form_progress");
+        const saved = localStorage.getItem("acb_form_progress") || sessionStorage.getItem("acb_form_progress");
         if (saved) {
           const p = JSON.parse(saved);
           if (p.data && p.stepIndex != null && p.flow) {
@@ -3443,13 +3487,19 @@ function LeadIntakeForm() {
   useEffect(() => {
     if (PREVIEW.active || unitKey(flow[stepIndex] || "done") === "done") return;
     try {
-      sessionStorage.setItem("acb_form_progress", JSON.stringify({
+      localStorage.setItem("acb_form_progress", JSON.stringify({
         data,
         stepIndex,
         flow
       }));
     } catch (e) {}
   }, [data, stepIndex, flow]);
+
+  // Keep the console's live view in step with what they've typed. The snapshot
+  // rides along with the next batch (a ping at worst, so within 15 seconds).
+  useEffect(() => {
+    TRACK.answers = data;
+  }, [data]);
 
   // Tracking: device, referrer, IP, Clarity
   useEffect(() => {
@@ -3827,6 +3877,8 @@ function LeadIntakeForm() {
     flushTrack();
     try {
       sessionStorage.removeItem("acb_form_progress");
+      localStorage.removeItem("acb_form_progress");
+      clearSessionId();
     } catch (e) {}
     const submissionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString() + Math.random().toString(36);
 
