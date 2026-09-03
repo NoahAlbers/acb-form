@@ -662,7 +662,18 @@ function LeadIntakeForm(){
 
   // Keep the console's live view in step with what they've typed. The snapshot
   // rides along with the next batch (a ping at worst, so within 15 seconds).
-  useEffect(()=>{TRACK.answers=data;},[data]);
+  // Two fields start life with a real value rather than blank: the rent slider
+  // sits at $1,500 and the own/manage split at 50%. Sending those before the
+  // visitor has seen the question would show answers they never gave, so each
+  // one waits until its own question is on screen.
+  useEffect(()=>{
+    const seen=new Set();
+    for(let i=0;i<=stepIndex&&i<flow.length;i++)unitSteps(flow[i]).forEach(st=>seen.add(st));
+    const snapshot={...data};
+    if(!seen.has('avgRent')){delete snapshot.avgRent;delete snapshot.rentSliderPos;}
+    if(data.ownershipType!=='We own and manage for others'){delete snapshot.ownPercent;}
+    TRACK.answers=snapshot;
+  },[data,flow,stepIndex]);
 
   // Tracking: device, referrer, IP, Clarity
   useEffect(()=>{
