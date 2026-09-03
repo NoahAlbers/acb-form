@@ -167,6 +167,15 @@ const PREVIEW = {
   } catch (e) {}
 })();
 const SPEED = () => TRACK.flags.fastTransitions ? 0.35 : 1;
+// A heartbeat for the console's live view. Pings are not stored as events;
+// they only refresh "last seen" so staff can tell who is on the form right
+// now. Skipped while the tab is hidden so a background tab looks idle.
+function pingTrack() {
+  if (PREVIEW.active || !TRACK.sessionId) return;
+  if (document.visibilityState !== 'visible') return;
+  track('ping', document.__acbCurrentStep || null, null);
+  flushTrack();
+}
 const STATE_NAMES = {
   "MA": "Massachusetts",
   "MN": "Minnesota",
@@ -3490,7 +3499,10 @@ function LeadIntakeForm() {
     }
     fetch("https://ipapi.co/json/").then(r => r.json()).then(d => {
       trackingData.current.location = `${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;
-      if (d.timezone) trackingData.current.timezone = d.timezone;
+      if (d.timezone) {
+        trackingData.current.timezone = d.timezone;
+        TRACK.context.timezone = d.timezone;
+      }
     }).catch(() => {
       fetch("https://ipinfo.io/json?token=").then(r => r.json()).then(d => {
         trackingData.current.location = `${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;
@@ -3537,7 +3549,8 @@ function LeadIntakeForm() {
     TRACK.context = {
       referrer: trackingData.current.referrer || null,
       device: trackingData.current.device || null,
-      source_page: window.location.href
+      source_page: window.location.href,
+      timezone: trackingData.current.timezone || null
     };
     if (!PREVIEW.active) {
       fetch(LEAD_CONSOLE_API + '/api/form/config', {
@@ -3555,6 +3568,10 @@ function LeadIntakeForm() {
       });
     }
     const flushInterval = setInterval(flushTrack, 5000);
+    const pingInterval = setInterval(pingTrack, 15000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pingTrack();
+    });
     const onHide = () => {
       if (!formSubmitted.current) {
         track('abandon', null, {
@@ -3605,6 +3622,7 @@ function LeadIntakeForm() {
     return () => {
       clearInterval(heartbeatInterval);
       clearInterval(flushInterval);
+      clearInterval(pingInterval);
       window.removeEventListener('pagehide', onHide);
     };
   }, []);
@@ -3630,6 +3648,7 @@ function LeadIntakeForm() {
       TRACK.stepEnteredAt = nowTs;
       prevStepRef.current = cur;
       document.__acbCurrentStep = cur;
+      flushTrack();
     }
   }, [stepIndex, flow]);
 
