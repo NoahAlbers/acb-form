@@ -82,6 +82,15 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
       }catch(e){}
     })();
     const SPEED=()=>TRACK.flags.fastTransitions?0.35:1;
+    // A heartbeat for the console's live view. Pings are not stored as events;
+    // they only refresh "last seen" so staff can tell who is on the form right
+    // now. Skipped while the tab is hidden so a background tab looks idle.
+    function pingTrack(){
+      if(PREVIEW.active||!TRACK.sessionId)return;
+      if(document.visibilityState!=='visible')return;
+      track('ping',document.__acbCurrentStep||null,null);
+      flushTrack();
+    }
 
 const STATE_NAMES = {"MA":"Massachusetts","MN":"Minnesota","MT":"Montana","ND":"North Dakota","HI":"Hawaii","ID":"Idaho","WA":"Washington","AZ":"Arizona","CA":"California","CO":"Colorado","NV":"Nevada","NM":"New Mexico","OR":"Oregon","UT":"Utah","WY":"Wyoming","AR":"Arkansas","IA":"Iowa","KS":"Kansas","MO":"Missouri","NE":"Nebraska","OK":"Oklahoma","SD":"South Dakota","LA":"Louisiana","TX":"Texas","CT":"Connecticut","NH":"New Hampshire","RI":"Rhode Island","VT":"Vermont","AL":"Alabama","FL":"Florida","GA":"Georgia","MS":"Mississippi","SC":"South Carolina","IL":"Illinois","IN":"Indiana","KY":"Kentucky","NC":"North Carolina","OH":"Ohio","TN":"Tennessee","VA":"Virginia","WI":"Wisconsin","WV":"West Virginia","DE":"Delaware","DC":"Washington DC","MD":"Maryland","NJ":"New Jersey","NY":"New York","PA":"Pennsylvania","ME":"Maine","MI":"Michigan","AK":"Alaska"};
 const SVG_PATHS = {
@@ -643,7 +652,7 @@ function LeadIntakeForm(){
 
     try{trackingData.current.timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){trackingData.current.timezone="(Unknown)";}
 
-    fetch("https://ipapi.co/json/").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;if(d.timezone)trackingData.current.timezone=d.timezone;}).catch(()=>{
+    fetch("https://ipapi.co/json/").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country_name} (IP: ${d.ip})`;if(d.timezone){trackingData.current.timezone=d.timezone;TRACK.context.timezone=d.timezone;}}).catch(()=>{
       fetch("https://ipinfo.io/json?token=").then(r=>r.json()).then(d=>{trackingData.current.location=`${d.city}, ${d.region}, ${d.country} (IP: ${d.ip})`;if(d.timezone)trackingData.current.timezone=d.timezone;}).catch(()=>{trackingData.current.location="(Could not determine)";});
     });
 
@@ -652,7 +661,7 @@ function LeadIntakeForm(){
 
     // Flow tracking: assign experiment variants, then start batching events.
     TRACK.sessionId=sessionId.current;
-    TRACK.context={referrer:trackingData.current.referrer||null,device:trackingData.current.device||null,source_page:window.location.href};
+    TRACK.context={referrer:trackingData.current.referrer||null,device:trackingData.current.device||null,source_page:window.location.href,timezone:trackingData.current.timezone||null};
     if(!PREVIEW.active){
       fetch(LEAD_CONSOLE_API+'/api/form/config',{mode:'cors'}).then(r=>r.json()).then(cfg=>{
         const a=assignVariants(cfg&&cfg.experiments,sessionId.current);
@@ -662,6 +671,8 @@ function LeadIntakeForm(){
       }).catch(()=>{track('view',null,null);});
     }
     const flushInterval=setInterval(flushTrack,5000);
+    const pingInterval=setInterval(pingTrack,15000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pingTrack();});
     const onHide=()=>{if(!formSubmitted.current){track('abandon',null,{step:document.__acbCurrentStep||null});}flushTrack();};
     window.addEventListener('pagehide',onHide);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushTrack();});
@@ -683,7 +694,7 @@ function LeadIntakeForm(){
       const clCookie=cookies.find(c=>c.startsWith("_clsk="));
       if(clCookie){const val=clCookie.split("=")[1];const sessionId=val.split("|")[0];if(sessionId)trackingData.current.clarityUrl=trackingData.current.clarityUrl||`https://clarity.microsoft.com/projects/${CLARITY_PROJECT_ID}/sessions/${sessionId}`;}
     }catch(e){}
-    return()=>{clearInterval(heartbeatInterval);clearInterval(flushInterval);window.removeEventListener('pagehide',onHide);};
+    return()=>{clearInterval(heartbeatInterval);clearInterval(flushInterval);clearInterval(pingInterval);window.removeEventListener('pagehide',onHide);};
   },[]);
 
   // Step transitions: one effect covers every way the step can change.
@@ -701,6 +712,7 @@ function LeadIntakeForm(){
       TRACK.stepEnteredAt=nowTs;
       prevStepRef.current=cur;
       document.__acbCurrentStep=cur;
+      flushTrack();
     }
   },[stepIndex,flow]);
 
