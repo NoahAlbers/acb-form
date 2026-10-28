@@ -4033,6 +4033,7 @@ function LeadIntakeForm() {
       const failurePayload = {
         submission_id: submissionId,
         session_id: sessionId.current,
+        form_key: FORM_API_KEY,
         error_message: 'All 3 submission attempts failed',
         errors: errors,
         form_data_summary: {

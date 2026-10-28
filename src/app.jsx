@@ -901,7 +901,7 @@ function LeadIntakeForm(){
       errors.push({attempt:3,error:err.message||String(err),time:new Date().toISOString()});
       console.error('Backup also failed:',err);
       // Report total failure to Lead Console
-      const failurePayload={submission_id:submissionId,session_id:sessionId.current,error_message:'All 3 submission attempts failed',errors:errors,form_data_summary:{name:formData.fullName,email:formData.email,phone:formData.phone,company:formData.companyName},form_version:FORM_VERSION};
+      const failurePayload={submission_id:submissionId,session_id:sessionId.current,form_key:FORM_API_KEY,error_message:'All 3 submission attempts failed',errors:errors,form_data_summary:{name:formData.fullName,email:formData.email,phone:formData.phone,company:formData.companyName},form_version:FORM_VERSION};
       try{navigator.sendBeacon(LEAD_CONSOLE_API+'/api/leads/report-failure',new Blob([JSON.stringify(failurePayload)],{type:'application/json'}));}catch(e){}
       try{fetch(LEAD_CONSOLE_API+'/api/leads/report-failure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(failurePayload)}).catch(()=>{});}catch(e){}
       // Last resort: save to localStorage
