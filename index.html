@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!--
+    Content-Security-Policy: what this page may load and where it may send
+    data. If someone ever got script into the page, it could not pull code
+    from elsewhere or post answers anywhere but the Lead Console, FormSubmit
+    (the backup), the IP lookups, and Clarity. Adding a new outside service
+    means adding its host here, or the browser will refuse it. The sha256 is
+    the Clarity snippet below: change that snippet and the hash must change.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-ScoW6O6WaWFy4mGXhB0NvBR29a8cHfoFiRQrsgRzPrY=' https://*.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://raw.githubusercontent.com https://*.clarity.ms https://c.bing.com; connect-src 'self' https://www.advancedcb.app https://formsubmit.co https://ipapi.co https://ipinfo.io https://*.clarity.ms https://c.bing.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self' https://formsubmit.co">
   <title>Get Started</title>
   <!--
     Self-hosted, pre-compiled build — no third-party CDN, no in-browser Babel.
